@@ -25,22 +25,22 @@ export interface OpeningHours {
 
 export interface Place {
   id: string;
-  externalPlaceId?: string;
+  externalPlaceId?: string | undefined;
   name: string;
   category: PlaceCategory;
   address: string;
   latitude: number;
   longitude: number;
-  imageUrl?: string;
-  rating?: number;
-  openingHours?: OpeningHours;
+  imageUrl?: string | undefined;
+  rating?: number | undefined;
+  openingHours?: OpeningHours | undefined;
   visitDurationMinutes: number;
   priority: Priority;
-  notes?: string;
-  mealTag?: MealTag;
-  fixedDate?: string;
-  fixedStartTime?: string;
-  isLocked?: boolean;
+  notes?: string | undefined;
+  mealTag?: MealTag | undefined;
+  fixedDate?: string | undefined;
+  fixedStartTime?: string | undefined;
+  isLocked?: boolean | undefined;
 }
 
 export interface TripPreferences {
@@ -72,11 +72,11 @@ export interface Trip {
   status: TripStatus;
   shareToken: string;
   isPublic: boolean;
-  isDemo?: boolean;
+  isDemo?: boolean | undefined;
   places: Place[];
   preferences: TripPreferences;
-  itinerary?: ItineraryDay[];
-  unscheduled?: UnscheduledPlace[];
+  itinerary?: ItineraryDay[] | undefined;
+  unscheduled?: UnscheduledPlace[] | undefined;
   createdAt: string;
   updatedAt: string;
 }
@@ -86,21 +86,21 @@ export type ItemStatus = "pendente" | "concluido" | "pulado";
 
 export interface ItineraryItem {
   id: string;
-  placeId?: string;
+  placeId?: string | undefined;
   itemType: ItemType;
   title: string;
   position: number;
   startTime: string;
   endTime: string;
-  travelMinutes?: number;
-  travelDistance?: number;
-  transportMode?: TransportMode;
+  travelMinutes?: number | undefined;
+  travelDistance?: number | undefined;
+  transportMode?: TransportMode | undefined;
   status: ItemStatus;
-  warning?: string;
-  address?: string;
-  notes?: string;
-  category?: PlaceCategory;
-  isLocked?: boolean;
+  warning?: string | undefined;
+  address?: string | undefined;
+  notes?: string | undefined;
+  category?: PlaceCategory | undefined;
+  isLocked?: boolean | undefined;
 }
 
 export interface ItineraryDay {
