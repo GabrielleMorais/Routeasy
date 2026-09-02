@@ -54,6 +54,7 @@ interface Props {
 export function PlaceFormDialog({ open, onOpenChange, place, onSave }: Props) {
   const [tab, setTab] = useState(place ? "detalhes" : "buscar");
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [externalId, setExternalId] = useState<string | undefined>(undefined);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -85,6 +86,7 @@ export function PlaceFormDialog({ open, onOpenChange, place, onSave }: Props) {
     setCoords(
       place ? { latitude: place.latitude, longitude: place.longitude } : null,
     );
+    setExternalId(place?.externalPlaceId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, place]);
 
@@ -93,6 +95,7 @@ export function PlaceFormDialog({ open, onOpenChange, place, onSave }: Props) {
     form.setValue("address", result.address);
     form.setValue("category", result.category);
     setCoords({ latitude: result.latitude, longitude: result.longitude });
+    setExternalId(result.externalPlaceId);
     setTab("detalhes");
   }
 
@@ -113,11 +116,25 @@ export function PlaceFormDialog({ open, onOpenChange, place, onSave }: Props) {
       isLocked: place?.isLocked ?? false,
       rating: place?.rating,
       openingHours: place?.openingHours,
-      externalPlaceId: place?.externalPlaceId,
+      externalPlaceId: externalId,
     };
-    onSave(next);
+    if (onSave(next) === false) return;
+    form.reset({
+      name: "",
+      address: "",
+      category: "ponto_turistico",
+      visitDurationMinutes: 90,
+      priority: "quero_conhecer",
+      notes: "",
+      mealTag: "nenhum",
+      fixedStartTime: "",
+    });
+    setCoords(null);
+    setExternalId(undefined);
+    setTab("buscar");
     onOpenChange(false);
   });
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
