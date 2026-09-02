@@ -523,7 +523,12 @@ export const NEARBY_CATEGORY_LABELS: Record<NearbyCategory, string> = {
   compras: "Compras",
 };
 
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+/** Servidores públicos da Overpass API, tentados em ordem se um falhar. */
+const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.nchc.org.tw/api/interpreter",
+];
 
 const OVERPASS_FILTERS: Record<NearbyCategory, string[]> = {
   turismo: ['["tourism"~"attraction|viewpoint|artwork"]'],
