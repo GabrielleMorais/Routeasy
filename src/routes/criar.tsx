@@ -7,8 +7,10 @@ import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { AppNavbar } from "@/components/AppNavbar";
 import { EmptyState } from "@/components/EmptyState";
 
+import { OptimizeOrderDialog } from "@/components/OptimizeOrderDialog";
 import { PlaceCard } from "@/components/PlaceCard";
 import { PlaceFormDialog } from "@/components/PlaceFormDialog";
+
 import { TransportSelector } from "@/components/TransportSelector";
 import { RouteMap } from "@/components/RouteMap";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -62,6 +64,8 @@ function todayLocalISO(): string {
 
 function emptyTrip(): Trip {
   const today = todayLocalISO();
+
+
 
   return {
     id: createId(),
