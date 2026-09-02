@@ -196,6 +196,13 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
       return true;
     };
 
+    // Capacidade equilibrada: distribui as visitas restantes entre os dias que
+    // faltam, evitando lotar o primeiro dia e deixar os outros vazios.
+    // Calculada antes dos compromissos fixos, que também ocupam a cota do dia.
+    const daysLeft = dates.length - index;
+    const visitsLeft = [...remaining].filter((id) => !byId.get(id)!.mealTag).length;
+    const capacity = Math.max(1, Math.min(target, Math.ceil(visitsLeft / daysLeft)));
+
     fixedToday.forEach((place) => {
       const ok = scheduleVisit(place, toMinutes(place.fixedStartTime!));
       if (!ok) {
@@ -208,11 +215,6 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
       }
     });
 
-    // Capacidade equilibrada: distribui as visitas restantes entre os dias que
-    // faltam, evitando lotar o primeiro dia e deixar os outros vazios.
-    const daysLeft = dates.length - index;
-    const visitsLeft = [...remaining].filter((id) => !byId.get(id)!.mealTag).length;
-    const capacity = Math.max(1, Math.min(target, Math.ceil(visitsLeft / daysLeft)));
 
     let guard = 0;
     while (visits < capacity && remaining.size > 0 && guard++ < 40) {
