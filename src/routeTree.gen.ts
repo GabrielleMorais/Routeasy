@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ComoFuncionaRouteImport } from './routes/como-funciona'
 import { Route as CriarRouteImport } from './routes/criar'
 import { Route as RoteirosRouteImport } from './routes/roteiros'
+import { Route as CompartilhadoDataRouteImport } from './routes/compartilhado.$data'
+import { Route as RoteiroIdRouteImport } from './routes/roteiro.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +36,32 @@ const RoteirosRoute = RoteirosRouteImport.update({
   path: '/roteiros',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompartilhadoDataRoute = CompartilhadoDataRouteImport.update({
+  id: '/compartilhado/$data',
+  path: '/compartilhado/$data',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoteiroIdRoute = RoteiroIdRouteImport.update({
+  id: '/roteiro/$id',
+  path: '/roteiro/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/como-funciona': typeof ComoFuncionaRoute
   '/criar': typeof CriarRoute
   '/roteiros': typeof RoteirosRoute
+  '/compartilhado/$data': typeof CompartilhadoDataRoute
+  '/roteiro/$id': typeof RoteiroIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/como-funciona': typeof ComoFuncionaRoute
   '/criar': typeof CriarRoute
   '/roteiros': typeof RoteirosRoute
+  '/compartilhado/$data': typeof CompartilhadoDataRoute
+  '/roteiro/$id': typeof RoteiroIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +69,34 @@ export interface FileRoutesById {
   '/como-funciona': typeof ComoFuncionaRoute
   '/criar': typeof CriarRoute
   '/roteiros': typeof RoteirosRoute
+  '/compartilhado/$data': typeof CompartilhadoDataRoute
+  '/roteiro/$id': typeof RoteiroIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/como-funciona' | '/criar' | '/roteiros'
+  fullPaths:
+    | '/'
+    | '/como-funciona'
+    | '/criar'
+    | '/roteiros'
+    | '/compartilhado/$data'
+    | '/roteiro/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/como-funciona' | '/criar' | '/roteiros'
-  id: '__root__' | '/' | '/como-funciona' | '/criar' | '/roteiros'
+  to:
+    | '/'
+    | '/como-funciona'
+    | '/criar'
+    | '/roteiros'
+    | '/compartilhado/$data'
+    | '/roteiro/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/como-funciona'
+    | '/criar'
+    | '/roteiros'
+    | '/compartilhado/$data'
+    | '/roteiro/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +104,8 @@ export interface RootRouteChildren {
   ComoFuncionaRoute: typeof ComoFuncionaRoute
   CriarRoute: typeof CriarRoute
   RoteirosRoute: typeof RoteirosRoute
+  CompartilhadoDataRoute: typeof CompartilhadoDataRoute
+  RoteiroIdRoute: typeof RoteiroIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +138,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RoteirosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/compartilhado/$data': {
+      id: '/compartilhado/$data'
+      path: '/compartilhado/$data'
+      fullPath: '/compartilhado/$data'
+      preLoaderRoute: typeof CompartilhadoDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roteiro/$id': {
+      id: '/roteiro/$id'
+      path: '/roteiro/$id'
+      fullPath: '/roteiro/$id'
+      preLoaderRoute: typeof RoteiroIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +160,8 @@ const rootRouteChildren: RootRouteChildren = {
   ComoFuncionaRoute: ComoFuncionaRoute,
   CriarRoute: CriarRoute,
   RoteirosRoute: RoteirosRoute,
+  CompartilhadoDataRoute: CompartilhadoDataRoute,
+  RoteiroIdRoute: RoteiroIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
