@@ -431,14 +431,8 @@ function CreateTripStepper() {
                 </CardHeader>
                 <CardContent>
                   <RouteMap
-                    trip={{
-                      ...trip,
-                      accommodationLatitude:
-                        trip.accommodationLatitude || geocodeAddress(trip.accommodationAddress).latitude,
-                      accommodationLongitude:
-                        trip.accommodationLongitude ||
-                        geocodeAddress(trip.accommodationAddress).longitude,
-                    }}
+                    trip={trip}
+
                     days={[
                       {
                         id: "preview",
