@@ -8,7 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchRouteGeometry,
   googleMapsDirectionsUrl,
+  moovitDirectionsUrl,
   usesOpenStreetMap,
+  wazeNavigationUrl,
   type LatLng,
 } from "@/services/maps";
 import { formatMinutes } from "@/lib/labels";
@@ -55,6 +57,8 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
     latitude: trip.accommodationLatitude,
     longitude: trip.accommodationLongitude,
   };
+
+  const firstStop = perDay.flatMap((d) => d.stops)[0]?.place;
 
   const stops: MapStop[] = useMemo(
     () =>
