@@ -3,8 +3,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { format, parseISO } from "date-fns";
 import { ArrowLeft, ArrowRight, Info, MapPinned, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { AppNavbar } from "@/components/AppNavbar";
 import { EmptyState } from "@/components/EmptyState";
+
 import { PlaceCard } from "@/components/PlaceCard";
 import { PlaceFormDialog } from "@/components/PlaceFormDialog";
 import { TransportSelector } from "@/components/TransportSelector";
@@ -107,11 +109,19 @@ function CreateTripStepper() {
   const updatePrefs = (patch: Partial<Trip["preferences"]>) =>
     setTrip((prev) => ({ ...prev, preferences: { ...prev.preferences, ...patch } }));
 
+  const accommodationConfirmed =
+    trip.accommodationAddress.trim().length >= 4 &&
+    Number.isFinite(trip.accommodationLatitude) &&
+    Number.isFinite(trip.accommodationLongitude) &&
+    trip.accommodationLatitude !== 0 &&
+    trip.accommodationLongitude !== 0;
+
   const step1Valid =
     trip.title.trim().length >= 3 &&
     trip.destination.trim().length >= 2 &&
-    trip.accommodationAddress.trim().length >= 4 &&
+    accommodationConfirmed &&
     trip.startDate <= trip.endDate;
+
 
   const MIN_PLACES = 3;
   const step2Valid = trip.places.length >= MIN_PLACES;
