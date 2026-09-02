@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { moovitDirectionsUrl, wazeNavigationUrl } from "@/services/maps";
 import type { ItineraryDay, ItineraryItem, Trip } from "@/types/trip";
 
 interface Props {
@@ -17,6 +18,11 @@ export function MobileTravelMode({ trip, day, onUpdateStatus }: Props) {
   const done = stops.filter((i) => i.status !== "pendente").length;
   const next = stops.find((i) => i.status === "pendente");
   const progress = stops.length ? Math.round((done / stops.length) * 100) : 0;
+  const nextPlace = next?.placeId ? trip.places.find((p) => p.id === next.placeId) : undefined;
+  const accommodation = {
+    latitude: trip.accommodationLatitude,
+    longitude: trip.accommodationLongitude,
+  };
   const now = new Date();
   const late =
     next && `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}` > next.endTime;
@@ -59,7 +65,31 @@ export function MobileTravelMode({ trip, day, onUpdateStatus }: Props) {
                 {next.startTime} – {next.endTime}
               </p>
               {next.address ? <p className="text-sm text-muted-foreground">{next.address}</p> : null}
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {nextPlace && trip.transportMode === "carro" ? (
+                  <Button asChild>
+                    <a
+                      href={wazeNavigationUrl(nextPlace)}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                    >
+                      <ExternalLink className="size-4" aria-hidden="true" />
+                      Ir com Waze
+                    </a>
+                  </Button>
+                ) : null}
+                {nextPlace && trip.transportMode === "transporte_publico" ? (
+                  <Button asChild>
+                    <a
+                      href={moovitDirectionsUrl(nextPlace, accommodation, nextPlace.name)}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                    >
+                      <ExternalLink className="size-4" aria-hidden="true" />
+                      Ver rota no Moovit
+                    </a>
+                  </Button>
+                ) : null}
                 <Button asChild variant="secondary">
                   <a
                     href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
