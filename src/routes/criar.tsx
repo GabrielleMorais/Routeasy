@@ -157,23 +157,34 @@ function CreateTripStepper() {
     });
   }
 
-  function generate() {
-    const coords = geocodeAddress(trip.accommodationAddress);
-    const withCoords: Trip = {
-      ...trip,
-      accommodationLatitude: coords.latitude,
-      accommodationLongitude: coords.longitude,
-      status: "planejado",
-    };
-    const result = optimizeTrip(withCoords);
-    const saved = tripStorage.save({
-      ...withCoords,
-      itinerary: result.days,
-      unscheduled: result.unscheduled,
-    });
-    toast.success("Roteiro gerado e salvo neste navegador.");
-    navigate({ to: "/roteiro/$id", params: { id: saved.id } });
+  async function generate() {
+    setGenerating(true);
+    try {
+      const coords = await geocodeAddressAsync(trip.accommodationAddress);
+      const withCoords: Trip = {
+        ...trip,
+        accommodationLatitude: coords.latitude,
+        accommodationLongitude: coords.longitude,
+        status: "planejado",
+      };
+      // Carrega distâncias/durações reais (OSRM) antes de otimizar.
+      await warmupRoutes(
+        [coords, ...withCoords.places.map((p) => ({ latitude: p.latitude, longitude: p.longitude }))],
+        withCoords.transportMode,
+      );
+      const result = optimizeTrip(withCoords);
+      const saved = tripStorage.save({
+        ...withCoords,
+        itinerary: result.days,
+        unscheduled: result.unscheduled,
+      });
+      toast.success("Roteiro gerado e salvo neste navegador.");
+      navigate({ to: "/roteiro/$id", params: { id: saved.id } });
+    } finally {
+      setGenerating(false);
+    }
   }
+
 
   return (
     <div className="min-h-screen">
