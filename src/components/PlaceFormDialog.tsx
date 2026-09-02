@@ -46,8 +46,10 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   place?: Place | undefined;
-  onSave: (place: Place) => void;
+  /** Retorne `false` para manter o diálogo aberto (ex.: lugar duplicado). */
+  onSave: (place: Place) => boolean | void;
 }
+
 
 export function PlaceFormDialog({ open, onOpenChange, place, onSave }: Props) {
   const [tab, setTab] = useState(place ? "detalhes" : "buscar");
