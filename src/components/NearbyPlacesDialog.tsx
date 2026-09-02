@@ -2,7 +2,7 @@
  * Sugestões simples de lugares próximos (OpenStreetMap / Overpass API).
  * Sem IA e sem APIs pagas: apenas nome, categoria, endereço e distância.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Compass, ExternalLink, MapPin, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -50,28 +50,39 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
   const [results, setResults] = useState<NearbySuggestion[]>([]);
   const [duration, setDuration] = useState(90);
   const [priority, setPriority] = useState<Priority>("quero_conhecer");
+  const abortRef = useRef<AbortController | null>(null);
 
   const center = {
     latitude: trip.accommodationLatitude,
     longitude: trip.accommodationLongitude,
   };
-  const hasCenter = center.latitude !== 0 && center.longitude !== 0;
+  const hasCenter =
+    Number.isFinite(center.latitude) &&
+    Number.isFinite(center.longitude) &&
+    !(center.latitude === 0 && center.longitude === 0);
 
   async function load(next: NearbyCategory) {
+    // Cancela a requisição anterior (troca de categoria ou clique repetido).
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setCategory(next);
     setLoading(true);
     setError(null);
     try {
-      const found = await fetchNearbyPlaces(center, next);
+      const found = await fetchNearbyPlaces(center, next, 3000, controller.signal);
+      if (controller.signal.aborted) return;
       setResults(found);
       if (found.length === 0) setError("Nenhum lugar encontrado nessa categoria por perto.");
-    } catch {
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      console.warn("[nearby] Busca falhou:", err);
       setResults([]);
       setError(
         "Não foi possível consultar o OpenStreetMap agora. Você pode cadastrar o lugar manualmente.",
       );
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }
 

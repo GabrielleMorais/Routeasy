@@ -523,7 +523,12 @@ export const NEARBY_CATEGORY_LABELS: Record<NearbyCategory, string> = {
   compras: "Compras",
 };
 
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+/** Servidores públicos da Overpass API, tentados em ordem se um falhar. */
+const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.nchc.org.tw/api/interpreter",
+];
 
 const OVERPASS_FILTERS: Record<NearbyCategory, string[]> = {
   turismo: ['["tourism"~"attraction|viewpoint|artwork"]'],
@@ -572,35 +577,94 @@ function tagsToAddress(tags: Record<string, string>): string {
   return parts.join(" — ");
 }
 
+/** Tempo máximo de espera por servidor Overpass (~12s). */
+const OVERPASS_TIMEOUT_MS = 12_000;
+
+function isValidCoord(c: LatLng): boolean {
+  return (
+    Number.isFinite(c.latitude) &&
+    Number.isFinite(c.longitude) &&
+    Math.abs(c.latitude) <= 90 &&
+    Math.abs(c.longitude) <= 180 &&
+    !(c.latitude === 0 && c.longitude === 0)
+  );
+}
+
+/**
+ * Consulta um servidor Overpass com timeout próprio.
+ * Lança erro em falha de rede, HTTP não-2xx ou timeout.
+ */
+async function queryOverpass(
+  endpoint: string,
+  body: string,
+  signal?: AbortSignal,
+): Promise<OverpassElement[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new Error("Tempo limite excedido")), OVERPASS_TIMEOUT_MS);
+  const onAbort = () => controller.abort(signal?.reason);
+  signal?.addEventListener("abort", onAbort);
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `data=${encodeURIComponent(body)}`,
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = (await response.json()) as { elements?: OverpassElement[] };
+    return data.elements ?? [];
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
+  }
+}
+
 /**
  * Busca lugares reais do OpenStreetMap por categoria e proximidade (Overpass).
  * Apenas leitura, com cache e no máximo 10 resultados por consulta.
+ * Tenta cada servidor público no máximo uma vez; se todos falharem, lança erro.
  */
 export async function fetchNearbyPlaces(
   center: LatLng,
   category: NearbyCategory,
   radiusMeters = 3000,
+  signal?: AbortSignal,
 ): Promise<NearbySuggestion[]> {
+  if (!isValidCoord(center)) {
+    throw new Error("Ponto de partida sem coordenadas válidas. Confirme o endereço da hospedagem.");
+  }
   const key = `nearby:${category}:${coordKey(center)}:${radiusMeters}`;
   const cached = cacheGet<NearbySuggestion[]>(key);
   if (cached) return cached;
 
   const around = `(around:${radiusMeters},${center.latitude},${center.longitude})`;
-  const body = `[out:json][timeout:25];(${OVERPASS_FILTERS[category]
+  const body = `[out:json][timeout:10];(${OVERPASS_FILTERS[category]
     .map((f) => `node${f}${around};way${f}${around};`)
     .join("")});out center 60;`;
 
-  const response = await fetch(OVERPASS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `data=${encodeURIComponent(body)}`,
-  });
-  if (!response.ok) throw new Error(`Overpass indisponível (${response.status})`);
-  const data = (await response.json()) as { elements?: OverpassElement[] };
+  let elements: OverpassElement[] | null = null;
+  let lastError: unknown = null;
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    if (signal?.aborted) throw signal.reason ?? new DOMException("AbortError", "AbortError");
+    try {
+      console.info(`[nearby] Consultando Overpass: ${endpoint} (${category})`);
+      elements = await queryOverpass(endpoint, body, signal);
+      break;
+    } catch (error) {
+      if (signal?.aborted) throw signal.reason ?? new DOMException("AbortError", "AbortError");
+      lastError = error;
+      console.warn(`[nearby] Falha em ${endpoint}:`, error);
+    }
+  }
+  if (elements === null) {
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("Todos os servidores do OpenStreetMap falharam.");
+  }
 
   const seen = new Set<string>();
   const suggestions: NearbySuggestion[] = [];
-  for (const el of data.elements ?? []) {
+  for (const el of elements) {
     const tags = el.tags ?? {};
     const name = tags["name"]?.trim();
     const lat = el.lat ?? el.center?.lat;
