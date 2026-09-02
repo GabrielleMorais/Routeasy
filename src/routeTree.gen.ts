@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ComoFuncionaRouteImport } from './routes/como-funciona'
+import { Route as CriarRouteImport } from './routes/criar'
 import { Route as RoteirosRouteImport } from './routes/roteiros'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const ComoFuncionaRoute = ComoFuncionaRouteImport.update({
   path: '/como-funciona',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CriarRoute = CriarRouteImport.update({
+  id: '/criar',
+  path: '/criar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoteirosRoute = RoteirosRouteImport.update({
   id: '/roteiros',
   path: '/roteiros',
@@ -32,30 +38,34 @@ const RoteirosRoute = RoteirosRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/como-funciona': typeof ComoFuncionaRoute
+  '/criar': typeof CriarRoute
   '/roteiros': typeof RoteirosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/como-funciona': typeof ComoFuncionaRoute
+  '/criar': typeof CriarRoute
   '/roteiros': typeof RoteirosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/como-funciona': typeof ComoFuncionaRoute
+  '/criar': typeof CriarRoute
   '/roteiros': typeof RoteirosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/como-funciona' | '/roteiros'
+  fullPaths: '/' | '/como-funciona' | '/criar' | '/roteiros'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/como-funciona' | '/roteiros'
-  id: '__root__' | '/' | '/como-funciona' | '/roteiros'
+  to: '/' | '/como-funciona' | '/criar' | '/roteiros'
+  id: '__root__' | '/' | '/como-funciona' | '/criar' | '/roteiros'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ComoFuncionaRoute: typeof ComoFuncionaRoute
+  CriarRoute: typeof CriarRoute
   RoteirosRoute: typeof RoteirosRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ComoFuncionaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/criar': {
+      id: '/criar'
+      path: '/criar'
+      fullPath: '/criar'
+      preLoaderRoute: typeof CriarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/roteiros': {
       id: '/roteiros'
       path: '/roteiros'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ComoFuncionaRoute: ComoFuncionaRoute,
+  CriarRoute: CriarRoute,
   RoteirosRoute: RoteirosRoute,
 }
 export const routeTree = rootRouteImport
