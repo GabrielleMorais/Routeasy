@@ -563,10 +563,11 @@ function CreateTripStepper() {
                   depois.
                 </AlertDescription>
               </Alert>
-              <Button size="lg" className="w-full" onClick={generate} disabled={trip.places.length === 0}>
+              <Button size="lg" className="w-full" onClick={generate} disabled={!step2Valid}>
                 <Sparkles className="size-4" aria-hidden="true" />
                 Gerar meu roteiro
               </Button>
+
             </CardContent>
           </Card>
         ) : null}
