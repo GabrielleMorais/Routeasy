@@ -148,13 +148,15 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
                 style={{ backgroundColor: DAY_COLORS[(day.dayNumber - 1) % DAY_COLORS.length] }}
                 aria-hidden="true"
               />
-              Dia {day.dayNumber} · {real ? real.km : day.totalDistance} km ·{" "}
-              {formatMinutes(real ? real.min : day.totalTravelMinutes)}
+              {/* Totais idênticos aos da timeline (somatório dos deslocamentos do dia). */}
+              Dia {day.dayNumber} · {day.totalDistance} km ·{" "}
+              {formatMinutes(day.totalTravelMinutes)}
               {real ? " (rota real)" : ""}
             </Badge>
           );
         })}
       </div>
+
 
       <p className="text-xs text-muted-foreground">
         Mapa © colaboradores do OpenStreetMap · rotas calculadas pelo OSRM.
