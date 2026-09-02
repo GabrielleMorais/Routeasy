@@ -584,8 +584,9 @@ function CreateTripStepper() {
           {step < 3 ? (
             <Button
               onClick={() => setStep((s) => Math.min(3, s + 1))}
-              disabled={step === 0 && !step1Valid}
+              disabled={(step === 0 && !step1Valid) || (step === 1 && !step2Valid)}
             >
+
               Continuar
               <ArrowRight className="size-4" aria-hidden="true" />
             </Button>
