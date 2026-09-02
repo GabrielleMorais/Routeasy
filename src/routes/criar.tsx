@@ -355,8 +355,9 @@ function CreateTripStepper() {
                   <Info className="size-4" aria-hidden="true" />
                   <AlertTitle>Preencha os campos obrigatórios</AlertTitle>
                   <AlertDescription>
-                    Nome da viagem, destino, hospedagem e um período válido são necessários para
-                    seguir.
+                    Nome da viagem, destino e um período válido são necessários. Além disso,
+                    selecione um endereço da lista para confirmar o ponto de partida.
+
                   </AlertDescription>
                 </Alert>
               ) : null}
@@ -609,7 +610,7 @@ function CreateTripStepper() {
                 size="lg"
                 className="w-full"
                 onClick={() => void generate()}
-                disabled={!step2Valid || generating}
+                disabled={!step1Valid || !step2Valid || generating}
               >
                 <Sparkles className="size-4" aria-hidden="true" />
                 {generating ? "Calculando rotas reais…" : "Gerar meu roteiro"}
