@@ -53,8 +53,14 @@ export const Route = createFileRoute("/criar")({
 
 const stepLabels = ["Informações da viagem", "Adicionar lugares", "Preferências", "Gerar roteiro"];
 
+/** Data local atual do navegador no formato yyyy-MM-dd (sem conversão de fuso). */
+function todayLocalISO(): string {
+  return format(new Date(), "yyyy-MM-dd");
+}
+
 function emptyTrip(): Trip {
-  const today = format(new Date(), "yyyy-MM-dd");
+  const today = todayLocalISO();
+
   return {
     id: createId(),
     title: "",
