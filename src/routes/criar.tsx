@@ -188,11 +188,17 @@ function CreateTripStepper() {
       };
       const withCoords: Trip = { ...trip, status: "planejado" };
       // Carrega distâncias/durações reais (OSRM) antes de otimizar.
-      await warmupRoutes(
+      const realRoutes = await warmupRoutes(
         [coords, ...withCoords.places.map((p) => ({ latitude: p.latitude, longitude: p.longitude }))],
         withCoords.transportMode,
       );
+      if (!realRoutes) {
+        toast.warning(
+          "Não foi possível consultar as rotas reais. A organização foi feita por proximidade geográfica.",
+        );
+      }
       const result = optimizeTrip(withCoords);
+
       const saved = tripStorage.save({
         ...withCoords,
         itinerary: result.days,
