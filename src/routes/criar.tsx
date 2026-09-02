@@ -83,6 +83,8 @@ function emptyTrip(): Trip {
     status: "rascunho",
     shareToken: createShareToken(),
     isPublic: false,
+    autoOptimizeOrder: true,
+
     places: [],
     preferences: {
       returnToAccommodation: true,
