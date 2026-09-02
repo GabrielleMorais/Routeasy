@@ -2,7 +2,7 @@
  * Sugestões simples de lugares próximos (OpenStreetMap / Overpass API).
  * Sem IA e sem APIs pagas: apenas nome, categoria, endereço e distância.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Compass, ExternalLink, MapPin, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
