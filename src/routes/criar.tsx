@@ -369,16 +369,37 @@ function CreateTripStepper() {
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-xl font-semibold">Lugares da viagem ({trip.places.length})</h2>
-              <Button
-                onClick={() => {
-                  setEditing(undefined);
-                  setPlaceDialog(true);
-                }}
-              >
-                <Plus className="size-4" aria-hidden="true" />
-                Adicionar lugar
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <OptimizeOrderDialog
+                  trip={trip}
+                  onApply={(places) => {
+                    update({ places });
+                    toast.success("Otimização aplicada");
+                  }}
+                />
+                <Button
+                  onClick={() => {
+                    setEditing(undefined);
+                    setPlaceDialog(true);
+                  }}
+                >
+                  <Plus className="size-4" aria-hidden="true" />
+                  Adicionar lugar
+                </Button>
+              </div>
             </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+              <Label htmlFor="auto-order" className="font-normal">
+                Organizar automaticamente para reduzir deslocamentos
+              </Label>
+              <Switch
+                id="auto-order"
+                checked={trip.autoOptimizeOrder !== false}
+                onCheckedChange={(v) => update({ autoOptimizeOrder: v })}
+              />
+            </div>
+
 
             {!step2Valid ? (
               <Alert>
