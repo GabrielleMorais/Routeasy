@@ -169,15 +169,18 @@ function CreateTripStepper() {
   }
 
   async function generate() {
+    if (!accommodationConfirmed) {
+      toast.error("Selecione um endereço da lista para confirmar o ponto de partida.");
+      return;
+    }
     setGenerating(true);
     try {
-      const coords = await geocodeAddressAsync(trip.accommodationAddress);
-      const withCoords: Trip = {
-        ...trip,
-        accommodationLatitude: coords.latitude,
-        accommodationLongitude: coords.longitude,
-        status: "planejado",
+      // Coordenadas oficiais: as confirmadas no ponto de partida (sem fallback simulado).
+      const coords = {
+        latitude: trip.accommodationLatitude,
+        longitude: trip.accommodationLongitude,
       };
+      const withCoords: Trip = { ...trip, status: "planejado" };
       // Carrega distâncias/durações reais (OSRM) antes de otimizar.
       await warmupRoutes(
         [coords, ...withCoords.places.map((p) => ({ latitude: p.latitude, longitude: p.longitude }))],
@@ -195,6 +198,7 @@ function CreateTripStepper() {
       setGenerating(false);
     }
   }
+
 
 
   return (
