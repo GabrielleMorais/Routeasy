@@ -447,6 +447,15 @@ function CreateTripStepper() {
                     }
                     onMoveUp={(p) => movePlace(p, -1)}
                     onMoveDown={(p) => movePlace(p, 1)}
+                    onToggleLock={(p) =>
+                      setTrip((prev) => ({
+                        ...prev,
+                        places: prev.places.map((item) =>
+                          item.id === p.id ? { ...item, isLocked: !item.isLocked } : item,
+                        ),
+                      }))
+                    }
+
                   />
                 ))}
               </div>
