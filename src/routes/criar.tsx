@@ -229,15 +229,37 @@ function CreateTripStepper() {
                   placeholder="Ex.: São Paulo, SP"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="accommodation">Hospedagem ou ponto de partida</Label>
-                <Input
+              <div className="sm:col-span-2">
+                <AddressAutocomplete
                   id="accommodation"
+                  label="Hospedagem ou ponto de partida"
                   value={trip.accommodationAddress}
-                  onChange={(e) => update({ accommodationAddress: e.target.value })}
+                  near={trip.destination}
+                  confirmed={accommodationConfirmed}
                   placeholder="Ex.: Av. Paulista, 900 — São Paulo"
+                  onTextChange={(accommodationAddress) =>
+                    update({
+                      accommodationAddress,
+                      accommodationLatitude: 0,
+                      accommodationLongitude: 0,
+                      accommodationPlaceId: undefined,
+                      accommodationSource: undefined,
+                      accommodationName: undefined,
+                    })
+                  }
+                  onConfirm={(found) =>
+                    update({
+                      accommodationName: found.name,
+                      accommodationAddress: found.address,
+                      accommodationLatitude: found.latitude,
+                      accommodationLongitude: found.longitude,
+                      accommodationPlaceId: found.placeId,
+                      accommodationSource: found.source,
+                    })
+                  }
                 />
               </div>
+
               <div className="space-y-1.5">
                 <Label htmlFor="start">Data inicial</Label>
                 <Input
