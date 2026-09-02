@@ -57,7 +57,7 @@ export function TripCard({ trip, onDuplicate, onDelete }: Props) {
             <DropdownMenuItem onSelect={() => onDuplicate(trip)}>
               <Copy className="size-4" /> Duplicar
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" onSelect={() => onDelete(trip)}>
+            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => onDelete(trip)}>
               <Trash2 className="size-4" /> Excluir
             </DropdownMenuItem>
           </DropdownMenuContent>
