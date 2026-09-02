@@ -90,6 +90,10 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
   };
   const target = PACE_TARGET[trip.travelPace];
   const prefs = trip.preferences;
+  /** Organização automática ligada por padrão (reduz deslocamentos). */
+  const autoOrder = trip.autoOptimizeOrder !== false;
+  const orderIndex = new Map(trip.places.map((p, i) => [p.id, i] as const));
+
 
   const pending = trip.places.filter((p) => p.category !== "hotel");
   const remaining = new Set(pending.map((p) => p.id));
