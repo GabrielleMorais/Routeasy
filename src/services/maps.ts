@@ -664,7 +664,7 @@ export async function fetchNearbyPlaces(
 
   const seen = new Set<string>();
   const suggestions: NearbySuggestion[] = [];
-  for (const el of data.elements ?? []) {
+  for (const el of elements) {
     const tags = el.tags ?? {};
     const name = tags["name"]?.trim();
     const lat = el.lat ?? el.center?.lat;
