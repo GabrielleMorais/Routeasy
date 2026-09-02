@@ -545,8 +545,10 @@ function CreateTripStepper() {
                 <li>Viagem: {trip.title || "—"}</li>
                 <li>Destino: {trip.destination || "—"}</li>
                 <li>
-                  Período: {trip.startDate} até {trip.endDate}
+                  Período: {format(parseISO(trip.startDate), "dd/MM/yyyy")} até{" "}
+                  {format(parseISO(trip.endDate), "dd/MM/yyyy")}
                 </li>
+
                 <li>Lugares cadastrados: {trip.places.length}</li>
                 <li>
                   Janela diária: {trip.dailyStartTime} às {trip.dailyEndTime}
