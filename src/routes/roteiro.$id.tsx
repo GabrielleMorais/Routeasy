@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useTrip } from "@/hooks/useTrips";
 import { optimizeTrip, recalculateDay } from "@/services/optimizer";
+import { warmupRoutes } from "@/services/maps";
 import type { ItineraryDay, ItineraryItem, Trip } from "@/types/trip";
 
 export const Route = createFileRoute("/roteiro/$id")({
@@ -133,7 +134,14 @@ function ItineraryPage() {
     });
   }
 
-  function reoptimize() {
+  async function reoptimize() {
+    await warmupRoutes(
+      [
+        { latitude: trip!.accommodationLatitude, longitude: trip!.accommodationLongitude },
+        ...trip!.places.map((p) => ({ latitude: p.latitude, longitude: p.longitude })),
+      ],
+      trip!.transportMode,
+    );
     const result = optimizeTrip(trip!);
     commit(
       { ...trip!, itinerary: result.days, unscheduled: result.unscheduled },
@@ -177,7 +185,7 @@ function ItineraryPage() {
               <Undo2 className="size-4" aria-hidden="true" />
               Desfazer
             </Button>
-            <Button variant="outline" onClick={reoptimize}>
+            <Button variant="outline" onClick={() => void reoptimize()}>
               <RotateCcw className="size-4" aria-hidden="true" />
               Otimizar novamente
             </Button>
@@ -190,7 +198,7 @@ function ItineraryPage() {
             icon={Sparkles}
             title="Roteiro ainda não gerado"
             description="Este roteiro não possui itinerário. Gere a organização automática dos dias a partir dos lugares cadastrados."
-            action={<Button onClick={reoptimize}>Gerar itinerário</Button>}
+            action={<Button onClick={() => void reoptimize()}>Gerar itinerário</Button>}
           />
         ) : (
           <>

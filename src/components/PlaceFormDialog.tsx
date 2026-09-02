@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { PlaceSearch } from "@/components/PlaceSearch";
 import { categoryLabels, durationOptions, priorityLabels } from "@/lib/labels";
-import { geocodeAddress, type GeoResult } from "@/services/maps";
+import { geocodeAddressAsync, type GeoResult } from "@/services/maps";
 import { createId } from "@/services/storage";
 import type { Place, PlaceCategory, Priority } from "@/types/trip";
 
@@ -99,8 +99,8 @@ export function PlaceFormDialog({ open, onOpenChange, place, onSave }: Props) {
     setTab("detalhes");
   }
 
-  const submit = form.handleSubmit((values) => {
-    const location = coords ?? geocodeAddress(values.address);
+  const submit = form.handleSubmit(async (values) => {
+    const location = coords ?? (await geocodeAddressAsync(values.address));
     const next: Place = {
       id: place?.id ?? createId(),
       name: values.name,

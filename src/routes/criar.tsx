@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { paceLabels } from "@/lib/labels";
-import { geocodeAddress } from "@/services/maps";
+import { geocodeAddress, geocodeAddressAsync, warmupRoutes } from "@/services/maps";
 import { optimizeTrip } from "@/services/optimizer";
 import { createId, createShareToken, tripStorage } from "@/services/storage";
 import type { Place, Trip, TravelPace } from "@/types/trip";
@@ -101,6 +101,7 @@ function CreateTripStepper() {
   const [trip, setTrip] = useState<Trip>(emptyTrip);
   const [placeDialog, setPlaceDialog] = useState(false);
   const [editing, setEditing] = useState<Place | undefined>(undefined);
+  const [generating, setGenerating] = useState(false);
 
   const update = (patch: Partial<Trip>) => setTrip((prev) => ({ ...prev, ...patch }));
   const updatePrefs = (patch: Partial<Trip["preferences"]>) =>
@@ -157,23 +158,34 @@ function CreateTripStepper() {
     });
   }
 
-  function generate() {
-    const coords = geocodeAddress(trip.accommodationAddress);
-    const withCoords: Trip = {
-      ...trip,
-      accommodationLatitude: coords.latitude,
-      accommodationLongitude: coords.longitude,
-      status: "planejado",
-    };
-    const result = optimizeTrip(withCoords);
-    const saved = tripStorage.save({
-      ...withCoords,
-      itinerary: result.days,
-      unscheduled: result.unscheduled,
-    });
-    toast.success("Roteiro gerado e salvo neste navegador.");
-    navigate({ to: "/roteiro/$id", params: { id: saved.id } });
+  async function generate() {
+    setGenerating(true);
+    try {
+      const coords = await geocodeAddressAsync(trip.accommodationAddress);
+      const withCoords: Trip = {
+        ...trip,
+        accommodationLatitude: coords.latitude,
+        accommodationLongitude: coords.longitude,
+        status: "planejado",
+      };
+      // Carrega distâncias/durações reais (OSRM) antes de otimizar.
+      await warmupRoutes(
+        [coords, ...withCoords.places.map((p) => ({ latitude: p.latitude, longitude: p.longitude }))],
+        withCoords.transportMode,
+      );
+      const result = optimizeTrip(withCoords);
+      const saved = tripStorage.save({
+        ...withCoords,
+        itinerary: result.days,
+        unscheduled: result.unscheduled,
+      });
+      toast.success("Roteiro gerado e salvo neste navegador.");
+      navigate({ to: "/roteiro/$id", params: { id: saved.id } });
+    } finally {
+      setGenerating(false);
+    }
   }
+
 
   return (
     <div className="min-h-screen">
@@ -563,9 +575,14 @@ function CreateTripStepper() {
                   depois.
                 </AlertDescription>
               </Alert>
-              <Button size="lg" className="w-full" onClick={generate} disabled={!step2Valid}>
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={() => void generate()}
+                disabled={!step2Valid || generating}
+              >
                 <Sparkles className="size-4" aria-hidden="true" />
-                Gerar meu roteiro
+                {generating ? "Calculando rotas reais…" : "Gerar meu roteiro"}
               </Button>
 
             </CardContent>
