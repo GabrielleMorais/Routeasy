@@ -122,9 +122,7 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
         <Alert>
           <AlertTitle>Estimativa para o meio de transporte escolhido</AlertTitle>
           <AlertDescription>
-            O serviço público de rotas (OSRM) só oferece o perfil rodoviário. O traçado exibido é
-            rodoviário e os tempos de {trip.transportMode === "transporte_publico" ? "transporte público" : trip.transportMode === "bicicleta" ? "bicicleta" : "caminhada"} são
-            uma estimativa — não representam uma rota real desse modo.
+            Estimativa rodoviária — não considera ônibus ou metrô em tempo real.
           </AlertDescription>
         </Alert>
       ) : null}
