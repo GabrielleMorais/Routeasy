@@ -1,8 +1,9 @@
-import { ArrowDown, ArrowUp, Clock, MapPin, Pencil, Trash2, Utensils } from "lucide-react";
+import { ArrowDown, ArrowUp, Clock, Lock, MapPin, Pencil, Trash2, Utensils } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PriorityBadge } from "@/components/PriorityBadge";
 import { categoryLabels, formatMinutes } from "@/lib/labels";
 import type { Place } from "@/types/trip";
@@ -13,9 +14,18 @@ interface PlaceCardProps {
   onRemove?: (place: Place) => void;
   onMoveUp?: (place: Place) => void;
   onMoveDown?: (place: Place) => void;
+  onToggleLock?: (place: Place) => void;
 }
 
-export function PlaceCard({ place, onEdit, onRemove, onMoveUp, onMoveDown }: PlaceCardProps) {
+export function PlaceCard({
+  place,
+  onEdit,
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  onToggleLock,
+}: PlaceCardProps) {
+
   return (
     <Card className="transition-shadow hover:shadow-[var(--shadow-lift)]">
       <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start">
