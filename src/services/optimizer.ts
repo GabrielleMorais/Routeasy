@@ -225,10 +225,10 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
         .map((p) => {
           const leg = estimateLeg(current, p, trip.transportMode);
           const arrival = cursor + leg.durationMinutes;
-          const departure = arrival + p.visitDurationMinutes;
-          return { place: p, leg, arrival, departure };
+          const start = startWithinOpening(p, date, arrival);
+          return { place: p, leg, start, departure: (start ?? 0) + p.visitDurationMinutes };
         })
-        .filter((c) => c.departure <= dayEnd && isOpen(c.place, date, c.arrival, c.departure))
+        .filter((c) => c.start !== null && c.departure <= dayEnd)
         .sort(
           (a, b) =>
             PRIORITY_WEIGHT[a.place.priority] - PRIORITY_WEIGHT[b.place.priority] ||
@@ -239,6 +239,7 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
       if (!next) break;
       if (!scheduleVisit(next.place)) break;
     }
+
 
     if (prefs.returnToAccommodation && items.length > 1) {
       const leg = estimateLeg(current, accommodation, trip.transportMode);
