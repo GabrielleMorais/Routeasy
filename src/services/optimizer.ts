@@ -140,9 +140,14 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
       const leg = estimateLeg(current, place, trip.transportMode);
       let arrival = cursor + leg.durationMinutes;
       if (forcedStart !== undefined) arrival = Math.max(arrival, forcedStart);
+      const possibleStart =
+        forcedStart !== undefined ? arrival : startWithinOpening(place, date, arrival);
+      if (possibleStart === null) return false;
+      arrival = possibleStart;
       const departure = arrival + place.visitDurationMinutes;
       if (departure > dayEnd) return false;
-      if (!isOpen(place, date, arrival, departure)) return false;
+      if (forcedStart !== undefined && !isOpen(place, date, arrival, departure)) return false;
+
 
       items.push({
         id: uid("item"),
