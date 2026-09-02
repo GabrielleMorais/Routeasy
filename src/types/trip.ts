@@ -77,6 +77,9 @@ export interface Trip {
   shareToken: string;
   isPublic: boolean;
   isDemo?: boolean | undefined;
+  /** Quando true (padrão), o app reorganiza a ordem dos lugares para reduzir deslocamentos. */
+  autoOptimizeOrder?: boolean | undefined;
+
   places: Place[];
   preferences: TripPreferences;
   itinerary?: ItineraryDay[] | undefined;

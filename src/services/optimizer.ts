@@ -208,8 +208,14 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
       }
     });
 
+    // Capacidade equilibrada: distribui as visitas restantes entre os dias que
+    // faltam, evitando lotar o primeiro dia e deixar os outros vazios.
+    const daysLeft = dates.length - index;
+    const visitsLeft = [...remaining].filter((id) => !byId.get(id)!.mealTag).length;
+    const capacity = Math.max(1, Math.min(target, Math.ceil(visitsLeft / daysLeft)));
+
     let guard = 0;
-    while (visits < target && remaining.size > 0 && guard++ < 40) {
+    while (visits < capacity && remaining.size > 0 && guard++ < 40) {
       if (!lunchDone && cursor >= toMinutes(prefs.lunchTime)) {
         pushMeal("almoco", cursor, prefs.lunchDurationMinutes);
         cursor += prefs.lunchDurationMinutes;
@@ -233,16 +239,20 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
           return { place: p, leg, start, departure: (start ?? 0) + p.visitDurationMinutes };
         })
         .filter((c) => c.start !== null && c.departure <= dayEnd)
-        .sort(
-          (a, b) =>
-            PRIORITY_WEIGHT[a.place.priority] - PRIORITY_WEIGHT[b.place.priority] ||
-            a.leg.durationMinutes - b.leg.durationMinutes,
+        .sort((a, b) =>
+          autoOrder
+            ? // Organização automática: menor tempo de deslocamento viável primeiro.
+              a.leg.durationMinutes - b.leg.durationMinutes ||
+              PRIORITY_WEIGHT[a.place.priority] - PRIORITY_WEIGHT[b.place.priority]
+            : // Sem organização automática: respeita a ordem cadastrada pelo usuário.
+              (orderIndex.get(a.place.id) ?? 0) - (orderIndex.get(b.place.id) ?? 0),
         );
 
       const next = candidates[0];
       if (!next) break;
       if (!scheduleVisit(next.place)) break;
     }
+
 
 
     if (prefs.returnToAccommodation && items.length > 1) {
