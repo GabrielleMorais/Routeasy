@@ -25,8 +25,16 @@ export interface GeoResult {
   category: PlaceCategory;
   rating?: number;
   imageUrl?: string;
+  /** Cidade/município, quando informado pelo provedor. */
+  city?: string | undefined;
+  /** Estado/província. */
+  state?: string | undefined;
+  country?: string | undefined;
+  /** Tipo bruto do local no provedor (ex.: "restaurant", "road"). */
+  placeType?: string | undefined;
   isMock: boolean;
 }
+
 
 export interface RouteLeg {
   distanceKm: number;
