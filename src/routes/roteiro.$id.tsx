@@ -137,19 +137,36 @@ function ItineraryPage() {
     });
   }
 
-  async function reoptimize() {
-    await warmupRoutes(
-      [
-        { latitude: trip!.accommodationLatitude, longitude: trip!.accommodationLongitude },
-        ...trip!.places.map((p) => ({ latitude: p.latitude, longitude: p.longitude })),
-      ],
-      trip!.transportMode,
-    );
-    const result = optimizeTrip(trip!);
-    commit(
-      { ...trip!, itinerary: result.days, unscheduled: result.unscheduled },
-      "Roteiro otimizado novamente.",
-    );
+  /** Recalcula o itinerário (usa as durações reais do OSRM quando disponíveis). */
+  async function reoptimize(base?: Trip, message = "Roteiro otimizado novamente.") {
+    if (optimizing) return;
+    setOptimizing(true);
+    try {
+      const source = base ?? trip!;
+      const real = await warmupRoutes(
+        [
+          { latitude: source.accommodationLatitude, longitude: source.accommodationLongitude },
+          ...source.places.map((p) => ({ latitude: p.latitude, longitude: p.longitude })),
+        ],
+        source.transportMode,
+      );
+      if (!real) {
+        toast.warning(
+          "Não foi possível consultar as rotas reais. A organização foi feita por proximidade geográfica.",
+        );
+      }
+      const result = optimizeTrip(source);
+      commit({ ...source, itinerary: result.days, unscheduled: result.unscheduled }, message);
+    } catch {
+      toast.error("Não foi possível otimizar a rota agora.");
+    } finally {
+      setOptimizing(false);
+    }
+  }
+
+  function applyRecommendedOrder(places: Trip["places"]) {
+    setLastWasOptimization(true);
+    void reoptimize({ ...trip!, places }, "Otimização aplicada");
   }
 
   function undo() {
@@ -157,8 +174,10 @@ function ItineraryPage() {
     if (!previous) return;
     setHistory((prev) => prev.slice(0, -1));
     update(previous);
-    toast.success("Última alteração desfeita.");
+    toast.success(lastWasOptimization ? "Otimização desfeita" : "Última alteração desfeita.");
+    setLastWasOptimization(false);
   }
+
 
   const timelineProps = currentDay
     ? {
