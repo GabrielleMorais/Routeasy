@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { paceLabels } from "@/lib/labels";
-import { geocodeAddress, geocodeAddressAsync, warmupRoutes } from "@/services/maps";
+import { warmupRoutes } from "@/services/maps";
 import { optimizeTrip } from "@/services/optimizer";
 import { createId, createShareToken, tripStorage } from "@/services/storage";
 import type { Place, Trip, TravelPace } from "@/types/trip";
