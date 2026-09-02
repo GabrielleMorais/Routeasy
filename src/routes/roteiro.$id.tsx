@@ -205,14 +205,16 @@ function ItineraryPage() {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={undo} disabled={history.length === 0}>
               <Undo2 className="size-4" aria-hidden="true" />
-              Desfazer
+              {lastWasOptimization ? "Desfazer otimização" : "Desfazer"}
             </Button>
-            <Button variant="outline" onClick={() => void reoptimize()}>
+            <OptimizeOrderDialog trip={trip} onApply={applyRecommendedOrder} />
+            <Button variant="outline" onClick={() => void reoptimize()} disabled={optimizing}>
               <RotateCcw className="size-4" aria-hidden="true" />
-              Otimizar novamente
+              {optimizing ? "Calculando a melhor ordem das visitas..." : "Otimizar novamente"}
             </Button>
             <ShareTripDialog trip={trip} />
           </div>
+
         </header>
 
         {days.length === 0 ? (
