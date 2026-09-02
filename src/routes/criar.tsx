@@ -331,15 +331,18 @@ function CreateTripStepper() {
               </Button>
             </div>
 
-            {trip.places.length < 3 ? (
+            {!step2Valid ? (
               <Alert>
                 <Info className="size-4" aria-hidden="true" />
-                <AlertTitle>Adicione pelo menos três lugares</AlertTitle>
+                <AlertTitle>Adicione pelo menos três lugares para continuar</AlertTitle>
                 <AlertDescription>
-                  Com três ou mais lugares conseguimos montar uma rota realmente útil por dia.
+                  Você adicionou {trip.places.length} de {MIN_PLACES} lugares. Com três ou mais
+                  lugares conseguimos montar uma rota realmente útil por dia — o botão “Continuar”
+                  será liberado ao atingir esse mínimo.
                 </AlertDescription>
               </Alert>
             ) : null}
+
 
             {trip.places.length === 0 ? (
               <EmptyState
