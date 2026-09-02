@@ -170,7 +170,9 @@ interface NominatimItem {
   category?: string;
   type?: string;
   class?: string;
+  address?: Record<string, string>;
 }
+
 
 const CATEGORY_BY_OSM: Record<string, PlaceCategory> = {
   museum: "museu",
