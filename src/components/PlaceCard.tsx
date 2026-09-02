@@ -40,7 +40,20 @@ export function PlaceCard({
                 {place.mealTag === "almoco" ? "Almoço" : "Jantar"}
               </Badge>
             ) : null}
+            {place.isLocked ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge className="gap-1" variant="secondary">
+                    <Lock className="size-3" aria-hidden="true" /> Bloqueado
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Lugar bloqueado: não muda de dia, de posição nem de horário na otimização.
+                </TooltipContent>
+              </Tooltip>
+            ) : null}
           </div>
+
           <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
             <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             <span className="break-words">{place.address}</span>
