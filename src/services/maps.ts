@@ -215,12 +215,21 @@ function searchMock(query: string): GeoResult[] {
 
 /**
  * Busca endereços/lugares reais no Nominatim, com cache por termo.
+ * `near` (cidade/destino) prioriza resultados na região informada.
  * Em caso de falha ou zero resultados, cai para a base de demonstração.
  */
-export async function searchPlaces(query: string, signal?: AbortSignal): Promise<GeoResult[]> {
+export async function searchPlaces(
+  query: string,
+  signal?: AbortSignal,
+  options?: { near?: string | undefined },
+): Promise<GeoResult[]> {
   const term = query.trim();
   if (term.length < 3) return [];
-  const key = `search:${normalize(term)}`;
+  const near = options?.near?.trim() ?? "";
+  const biased = near && !normalize(term).includes(normalize(near).split(",")[0]!.trim())
+    ? `${term}, ${near}`
+    : term;
+  const key = `search:${normalize(biased)}`;
   const cached = cacheGet<GeoResult[]>(key);
   if (cached) return cached;
 
@@ -228,16 +237,17 @@ export async function searchPlaces(query: string, signal?: AbortSignal): Promise
 
   try {
     const params = new URLSearchParams({
-      q: term,
+      q: biased,
       format: "jsonv2",
       limit: "8",
-      addressdetails: "0",
+      addressdetails: "1",
       "accept-language": "pt-BR",
     });
     const items = await nominatimQueue(() =>
       getJson<NominatimItem[]>(`${NOMINATIM_URL}/search?${params.toString()}`, signal),
     );
     const results = items.map(toGeoResult);
+    if (results.length === 0 && biased !== term) return searchPlaces(term, signal);
     if (results.length === 0) return searchMock(term);
     cacheSet(key, results);
     return results;
@@ -246,6 +256,7 @@ export async function searchPlaces(query: string, signal?: AbortSignal): Promise
     return searchMock(term);
   }
 }
+
 
 /** Geocodificação síncrona (fallback offline/demonstração). */
 export function geocodeAddress(address: string): LatLng {
