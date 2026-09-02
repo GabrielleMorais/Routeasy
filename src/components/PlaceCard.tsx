@@ -1,8 +1,9 @@
-import { ArrowDown, ArrowUp, Clock, MapPin, Pencil, Trash2, Utensils } from "lucide-react";
+import { ArrowDown, ArrowUp, Clock, Lock, MapPin, Pencil, Trash2, Utensils } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PriorityBadge } from "@/components/PriorityBadge";
 import { categoryLabels, formatMinutes } from "@/lib/labels";
 import type { Place } from "@/types/trip";
@@ -13,9 +14,18 @@ interface PlaceCardProps {
   onRemove?: (place: Place) => void;
   onMoveUp?: (place: Place) => void;
   onMoveDown?: (place: Place) => void;
+  onToggleLock?: (place: Place) => void;
 }
 
-export function PlaceCard({ place, onEdit, onRemove, onMoveUp, onMoveDown }: PlaceCardProps) {
+export function PlaceCard({
+  place,
+  onEdit,
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  onToggleLock,
+}: PlaceCardProps) {
+
   return (
     <Card className="transition-shadow hover:shadow-[var(--shadow-lift)]">
       <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start">
@@ -30,7 +40,20 @@ export function PlaceCard({ place, onEdit, onRemove, onMoveUp, onMoveDown }: Pla
                 {place.mealTag === "almoco" ? "Almoço" : "Jantar"}
               </Badge>
             ) : null}
+            {place.isLocked ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge className="gap-1" variant="secondary">
+                    <Lock className="size-3" aria-hidden="true" /> Bloqueado
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Lugar bloqueado: não muda de dia, de posição nem de horário na otimização.
+                </TooltipContent>
+              </Tooltip>
+            ) : null}
           </div>
+
           <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
             <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             <span className="break-words">{place.address}</span>
@@ -61,6 +84,26 @@ export function PlaceCard({ place, onEdit, onRemove, onMoveUp, onMoveDown }: Pla
               <ArrowDown className="size-4" />
             </Button>
           ) : null}
+          {onToggleLock ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`${place.isLocked ? "Desbloquear" : "Bloquear"} ${place.name}`}
+                  onClick={() => onToggleLock(place)}
+                >
+                  <Lock className={`size-4 ${place.isLocked ? "text-primary" : ""}`} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {place.isLocked
+                  ? "Bloqueado: a otimização não altera dia, posição nem horário."
+                  : "Bloquear para manter dia, posição e horário deste lugar."}
+              </TooltipContent>
+            </Tooltip>
+          ) : null}
+
           {onEdit ? (
             <Button variant="ghost" size="icon" aria-label={`Editar ${place.name}`} onClick={() => onEdit(place)}>
               <Pencil className="size-4" />

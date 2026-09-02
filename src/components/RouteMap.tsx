@@ -118,7 +118,17 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
             Sem credenciais do provedor de mapas, distâncias e tempos são estimativas.
           </AlertDescription>
         </Alert>
+      ) : trip.transportMode !== "carro" ? (
+        <Alert>
+          <AlertTitle>Estimativa para o meio de transporte escolhido</AlertTitle>
+          <AlertDescription>
+            O serviço público de rotas (OSRM) só oferece o perfil rodoviário. O traçado exibido é
+            rodoviário e os tempos de {trip.transportMode === "transporte_publico" ? "transporte público" : trip.transportMode === "bicicleta" ? "bicicleta" : "caminhada"} são
+            uma estimativa — não representam uma rota real desse modo.
+          </AlertDescription>
+        </Alert>
       ) : null}
+
 
       <Card className="overflow-hidden p-0">
         <CardContent className="p-0">
@@ -148,13 +158,15 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
                 style={{ backgroundColor: DAY_COLORS[(day.dayNumber - 1) % DAY_COLORS.length] }}
                 aria-hidden="true"
               />
-              Dia {day.dayNumber} · {real ? real.km : day.totalDistance} km ·{" "}
-              {formatMinutes(real ? real.min : day.totalTravelMinutes)}
+              {/* Totais idênticos aos da timeline (somatório dos deslocamentos do dia). */}
+              Dia {day.dayNumber} · {day.totalDistance} km ·{" "}
+              {formatMinutes(day.totalTravelMinutes)}
               {real ? " (rota real)" : ""}
             </Badge>
           );
         })}
       </div>
+
 
       <p className="text-xs text-muted-foreground">
         Mapa © colaboradores do OpenStreetMap · rotas calculadas pelo OSRM.

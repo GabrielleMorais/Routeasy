@@ -10,6 +10,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { ItineraryTimeline } from "@/components/ItineraryTimeline";
 import { LoadingState } from "@/components/LoadingState";
 import { MobileTravelMode } from "@/components/MobileTravelMode";
+import { OptimizeOrderDialog } from "@/components/OptimizeOrderDialog";
+
 import { RouteMap } from "@/components/RouteMap";
 import { RouteSummary } from "@/components/RouteSummary";
 import { ShareTripDialog } from "@/components/ShareTripDialog";
@@ -48,9 +50,12 @@ function ItineraryPage() {
   const { trip, loading, update } = useTrip(id);
   const [history, setHistory] = useState<Trip[]>([]);
   const [activeDay, setActiveDay] = useState("1");
+  const [optimizing, setOptimizing] = useState(false);
+  const [lastWasOptimization, setLastWasOptimization] = useState(false);
 
   const days = useMemo(() => trip?.itinerary ?? [], [trip]);
   const currentDay = days.find((d) => String(d.dayNumber) === activeDay) ?? days[0];
+
 
   if (loading) {
     return (
@@ -134,19 +139,36 @@ function ItineraryPage() {
     });
   }
 
-  async function reoptimize() {
-    await warmupRoutes(
-      [
-        { latitude: trip!.accommodationLatitude, longitude: trip!.accommodationLongitude },
-        ...trip!.places.map((p) => ({ latitude: p.latitude, longitude: p.longitude })),
-      ],
-      trip!.transportMode,
-    );
-    const result = optimizeTrip(trip!);
-    commit(
-      { ...trip!, itinerary: result.days, unscheduled: result.unscheduled },
-      "Roteiro otimizado novamente.",
-    );
+  /** Recalcula o itinerário (usa as durações reais do OSRM quando disponíveis). */
+  async function reoptimize(base?: Trip, message = "Roteiro otimizado novamente.") {
+    if (optimizing) return;
+    setOptimizing(true);
+    try {
+      const source = base ?? trip!;
+      const real = await warmupRoutes(
+        [
+          { latitude: source.accommodationLatitude, longitude: source.accommodationLongitude },
+          ...source.places.map((p) => ({ latitude: p.latitude, longitude: p.longitude })),
+        ],
+        source.transportMode,
+      );
+      if (!real) {
+        toast.warning(
+          "Não foi possível consultar as rotas reais. A organização foi feita por proximidade geográfica.",
+        );
+      }
+      const result = optimizeTrip(source);
+      commit({ ...source, itinerary: result.days, unscheduled: result.unscheduled }, message);
+    } catch {
+      toast.error("Não foi possível otimizar a rota agora.");
+    } finally {
+      setOptimizing(false);
+    }
+  }
+
+  function applyRecommendedOrder(places: Trip["places"]) {
+    setLastWasOptimization(true);
+    void reoptimize({ ...trip!, places }, "Otimização aplicada");
   }
 
   function undo() {
@@ -154,8 +176,10 @@ function ItineraryPage() {
     if (!previous) return;
     setHistory((prev) => prev.slice(0, -1));
     update(previous);
-    toast.success("Última alteração desfeita.");
+    toast.success(lastWasOptimization ? "Otimização desfeita" : "Última alteração desfeita.");
+    setLastWasOptimization(false);
   }
+
 
   const timelineProps = currentDay
     ? {
@@ -183,14 +207,16 @@ function ItineraryPage() {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={undo} disabled={history.length === 0}>
               <Undo2 className="size-4" aria-hidden="true" />
-              Desfazer
+              {lastWasOptimization ? "Desfazer otimização" : "Desfazer"}
             </Button>
-            <Button variant="outline" onClick={() => void reoptimize()}>
+            <OptimizeOrderDialog trip={trip} onApply={applyRecommendedOrder} />
+            <Button variant="outline" onClick={() => void reoptimize()} disabled={optimizing}>
               <RotateCcw className="size-4" aria-hidden="true" />
-              Otimizar novamente
+              {optimizing ? "Calculando a melhor ordem das visitas..." : "Otimizar novamente"}
             </Button>
             <ShareTripDialog trip={trip} />
           </div>
+
         </header>
 
         {days.length === 0 ? (
