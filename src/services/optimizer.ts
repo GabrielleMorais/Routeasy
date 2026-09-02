@@ -186,8 +186,9 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
       current = place;
       remaining.delete(place.id);
       if (place.mealTag === "almoco") lunchDone = true;
-      if (place.mealTag === "jantar") dinnerDone = true;
+      else if (place.mealTag === "jantar") dinnerDone = true;
       else visits += 1;
+
       return true;
     };
 
