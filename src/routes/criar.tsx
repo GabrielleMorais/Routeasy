@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ArrowLeft, ArrowRight, Info, MapPinned, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AppNavbar } from "@/components/AppNavbar";
