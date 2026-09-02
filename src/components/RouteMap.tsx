@@ -8,7 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchRouteGeometry,
   googleMapsDirectionsUrl,
+  moovitDirectionsUrl,
   usesOpenStreetMap,
+  wazeNavigationUrl,
   type LatLng,
 } from "@/services/maps";
 import { formatMinutes } from "@/lib/labels";
@@ -55,6 +57,8 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
     latitude: trip.accommodationLatitude,
     longitude: trip.accommodationLongitude,
   };
+
+  const firstStop = perDay.flatMap((d) => d.stops)[0]?.place;
 
   const stops: MapStop[] = useMemo(
     () =>
@@ -122,9 +126,7 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
         <Alert>
           <AlertTitle>Estimativa para o meio de transporte escolhido</AlertTitle>
           <AlertDescription>
-            O serviço público de rotas (OSRM) só oferece o perfil rodoviário. O traçado exibido é
-            rodoviário e os tempos de {trip.transportMode === "transporte_publico" ? "transporte público" : trip.transportMode === "bicicleta" ? "bicicleta" : "caminhada"} são
-            uma estimativa — não representam uma rota real desse modo.
+            Estimativa rodoviária — não considera ônibus ou metrô em tempo real.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -172,22 +174,48 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
         Mapa © colaboradores do OpenStreetMap · rotas calculadas pelo OSRM.
       </p>
 
-      <Button variant="outline" className="w-full" asChild>
-        <a
-          href={googleMapsDirectionsUrl(
-            [
-              accommodation,
-              ...perDay.flatMap((d) => d.stops.map((s) => s.place)),
-            ],
-            trip.transportMode,
-          )}
-          target="_blank"
-          rel="noreferrer noopener"
+      <div className="grid gap-2">
+        {firstStop && trip.transportMode === "carro" ? (
+          <Button className="w-full" asChild>
+            <a href={wazeNavigationUrl(firstStop)} target="_blank" rel="noreferrer noopener">
+              <ExternalLink className="size-4" aria-hidden="true" />
+              Ir com Waze
+            </a>
+          </Button>
+        ) : null}
+        {firstStop && trip.transportMode === "transporte_publico" ? (
+          <Button className="w-full" asChild>
+            <a
+              href={moovitDirectionsUrl(firstStop, accommodation)}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              <ExternalLink className="size-4" aria-hidden="true" />
+              Ver rota no Moovit
+            </a>
+          </Button>
+        ) : null}
+        <Button
+          variant={trip.transportMode === "a_pe" || trip.transportMode === "bicicleta" ? "default" : "outline"}
+          className="w-full"
+          asChild
         >
-          <ExternalLink className="size-4" aria-hidden="true" />
-          Abrir no Google Maps
-        </a>
-      </Button>
+          <a
+            href={googleMapsDirectionsUrl(
+              [
+                accommodation,
+                ...perDay.flatMap((d) => d.stops.map((s) => s.place)),
+              ],
+              trip.transportMode,
+            )}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            <ExternalLink className="size-4" aria-hidden="true" />
+            Abrir no Google Maps
+          </a>
+        </Button>
+      </div>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { OptimizeOrderDialog } from "@/components/OptimizeOrderDialog";
 import { PlaceCard } from "@/components/PlaceCard";
 import { PlaceFormDialog } from "@/components/PlaceFormDialog";
+import { NearbyPlacesDialog } from "@/components/NearbyPlacesDialog";
 
 import { TransportSelector } from "@/components/TransportSelector";
 import { RouteMap } from "@/components/RouteMap";
@@ -382,6 +383,7 @@ function CreateTripStepper() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-xl font-semibold">Lugares da viagem ({trip.places.length})</h2>
               <div className="flex flex-wrap gap-2">
+                <NearbyPlacesDialog trip={trip} onAdd={savePlace} />
                 <OptimizeOrderDialog
                   trip={trip}
                   onApply={(places) => {

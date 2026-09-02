@@ -487,3 +487,141 @@ export function googleMapsDirectionsUrl(points: LatLng[], mode: TransportMode): 
   if (waypoints) params.set("waypoints", waypoints);
   return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Links externos de navegação (sem chave/API)                                  */
+/* -------------------------------------------------------------------------- */
+
+/** Deep link do Waze: abre o app no celular ou a versão web no navegador. */
+export function wazeNavigationUrl(destination: LatLng): string {
+  return `https://waze.com/ul?ll=${destination.latitude}%2C${destination.longitude}&navigate=yes`;
+}
+
+/** Deep link do Moovit (transporte público); envia origem quando disponível. */
+export function moovitDirectionsUrl(destination: LatLng, origin?: LatLng, destName?: string): string {
+  const params = new URLSearchParams({
+    customerId: "4908",
+    tll: `${destination.latitude}_${destination.longitude}`,
+  });
+  if (destName) params.set("to", destName);
+  if (origin) params.set("fll", `${origin.latitude}_${origin.longitude}`);
+  return `https://moovitapp.com/index/pt-br/transporte_p%C3%BAblico-poi?${params.toString()}`;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Sugestões de lugares próximos (Overpass API / OpenStreetMap)                 */
+/* -------------------------------------------------------------------------- */
+
+export type NearbyCategory = "turismo" | "cultura" | "parques" | "restaurantes" | "cafes" | "compras";
+
+export const NEARBY_CATEGORY_LABELS: Record<NearbyCategory, string> = {
+  turismo: "Turismo",
+  cultura: "Museus e cultura",
+  parques: "Parques",
+  restaurantes: "Restaurantes",
+  cafes: "Cafés",
+  compras: "Compras",
+};
+
+const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+
+const OVERPASS_FILTERS: Record<NearbyCategory, string[]> = {
+  turismo: ['["tourism"~"attraction|viewpoint|artwork"]'],
+  cultura: ['["tourism"="museum"]', '["amenity"="theatre"]'],
+  parques: ['["leisure"="park"]', '["leisure"="garden"]'],
+  restaurantes: ['["amenity"="restaurant"]'],
+  cafes: ['["amenity"="cafe"]'],
+  compras: ['["shop"="mall"]', '["amenity"="marketplace"]'],
+};
+
+const NEARBY_CATEGORY_TO_PLACE: Record<NearbyCategory, PlaceCategory> = {
+  turismo: "ponto_turistico",
+  cultura: "museu",
+  parques: "parque",
+  restaurantes: "restaurante",
+  cafes: "cafe",
+  compras: "compras",
+};
+
+export interface NearbySuggestion {
+  externalPlaceId: string;
+  name: string;
+  category: PlaceCategory;
+  categoryLabel: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  distanceKm: number;
+}
+
+interface OverpassElement {
+  type: string;
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+}
+
+function tagsToAddress(tags: Record<string, string>): string {
+  const parts = [
+    [tags["addr:street"], tags["addr:housenumber"]].filter(Boolean).join(", "),
+    tags["addr:suburb"],
+    tags["addr:city"],
+  ].filter(Boolean);
+  return parts.join(" — ");
+}
+
+/**
+ * Busca lugares reais do OpenStreetMap por categoria e proximidade (Overpass).
+ * Apenas leitura, com cache e no máximo 10 resultados por consulta.
+ */
+export async function fetchNearbyPlaces(
+  center: LatLng,
+  category: NearbyCategory,
+  radiusMeters = 3000,
+): Promise<NearbySuggestion[]> {
+  const key = `nearby:${category}:${coordKey(center)}:${radiusMeters}`;
+  const cached = cacheGet<NearbySuggestion[]>(key);
+  if (cached) return cached;
+
+  const around = `(around:${radiusMeters},${center.latitude},${center.longitude})`;
+  const body = `[out:json][timeout:25];(${OVERPASS_FILTERS[category]
+    .map((f) => `node${f}${around};way${f}${around};`)
+    .join("")});out center 60;`;
+
+  const response = await fetch(OVERPASS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `data=${encodeURIComponent(body)}`,
+  });
+  if (!response.ok) throw new Error(`Overpass indisponível (${response.status})`);
+  const data = (await response.json()) as { elements?: OverpassElement[] };
+
+  const seen = new Set<string>();
+  const suggestions: NearbySuggestion[] = [];
+  for (const el of data.elements ?? []) {
+    const tags = el.tags ?? {};
+    const name = tags["name"]?.trim();
+    const lat = el.lat ?? el.center?.lat;
+    const lon = el.lon ?? el.center?.lon;
+    if (!name || lat == null || lon == null) continue;
+    const dedupe = normalize(name);
+    if (seen.has(dedupe)) continue;
+    seen.add(dedupe);
+    suggestions.push({
+      externalPlaceId: `osm:${el.type}${el.id}`,
+      name,
+      category: NEARBY_CATEGORY_TO_PLACE[category],
+      categoryLabel: NEARBY_CATEGORY_LABELS[category],
+      address: tagsToAddress(tags),
+      latitude: lat,
+      longitude: lon,
+      distanceKm: Number(haversineKm(center, { latitude: lat, longitude: lon }).toFixed(2)),
+    });
+  }
+
+  const top = suggestions.sort((a, b) => a.distanceKm - b.distanceKm).slice(0, 10);
+  cacheSet(key, top);
+  return top;
+}
