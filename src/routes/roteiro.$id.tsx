@@ -10,6 +10,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { ItineraryTimeline } from "@/components/ItineraryTimeline";
 import { LoadingState } from "@/components/LoadingState";
 import { MobileTravelMode } from "@/components/MobileTravelMode";
+import { OptimizeOrderDialog } from "@/components/OptimizeOrderDialog";
+
 import { RouteMap } from "@/components/RouteMap";
 import { RouteSummary } from "@/components/RouteSummary";
 import { ShareTripDialog } from "@/components/ShareTripDialog";
