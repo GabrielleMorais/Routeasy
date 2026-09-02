@@ -122,7 +122,7 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
 
       <Card className="overflow-hidden p-0">
         <CardContent className="p-0">
-          <div className="relative aspect-4/3 w-full bg-accent/30">
+          <div className="relative isolate z-0 aspect-4/3 w-full overflow-hidden bg-accent/30">
             {mounted ? (
               <Suspense fallback={<Skeleton className="size-full" />}>
                 <LeafletMap
