@@ -204,7 +204,16 @@ function CreateTripStepper() {
                   id="start"
                   type="date"
                   value={trip.startDate}
-                  onChange={(e) => update({ startDate: e.target.value })}
+                  min={todayLocalISO()}
+                  onChange={(e) => {
+                    const startDate = e.target.value;
+                    if (!startDate) return;
+                    setTrip((prev) => ({
+                      ...prev,
+                      startDate,
+                      endDate: prev.endDate < startDate ? startDate : prev.endDate,
+                    }));
+                  }}
                 />
               </div>
               <div className="space-y-1.5">
@@ -213,9 +222,15 @@ function CreateTripStepper() {
                   id="end"
                   type="date"
                   value={trip.endDate}
-                  onChange={(e) => update({ endDate: e.target.value })}
+                  min={trip.startDate}
+                  onChange={(e) => {
+                    const endDate = e.target.value;
+                    if (!endDate) return;
+                    update({ endDate: endDate < trip.startDate ? trip.startDate : endDate });
+                  }}
                 />
               </div>
+
               <div className="space-y-1.5">
                 <Label htmlFor="daily-start">Começar o dia às</Label>
                 <Input
