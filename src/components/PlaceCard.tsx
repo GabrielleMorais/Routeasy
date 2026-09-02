@@ -84,6 +84,26 @@ export function PlaceCard({
               <ArrowDown className="size-4" />
             </Button>
           ) : null}
+          {onToggleLock ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`${place.isLocked ? "Desbloquear" : "Bloquear"} ${place.name}`}
+                  onClick={() => onToggleLock(place)}
+                >
+                  <Lock className={`size-4 ${place.isLocked ? "text-primary" : ""}`} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {place.isLocked
+                  ? "Bloqueado: a otimização não altera dia, posição nem horário."
+                  : "Bloquear para manter dia, posição e horário deste lugar."}
+              </TooltipContent>
+            </Tooltip>
+          ) : null}
+
           {onEdit ? (
             <Button variant="ghost" size="icon" aria-label={`Editar ${place.name}`} onClick={() => onEdit(place)}>
               <Pencil className="size-4" />
