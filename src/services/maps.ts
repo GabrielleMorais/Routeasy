@@ -205,6 +205,7 @@ function toCategory(item: NominatimItem): PlaceCategory {
 function toGeoResult(item: NominatimItem): GeoResult {
   const parts = item.display_name.split(",").map((p) => p.trim());
   const name = item.name?.trim() || parts[0] || item.display_name;
+  const a = item.address ?? {};
   return {
     externalPlaceId: `osm:${item.osm_type ?? "n"}${item.osm_id ?? item.place_id}`,
     name,
@@ -212,9 +213,14 @@ function toGeoResult(item: NominatimItem): GeoResult {
     latitude: Number(item.lat),
     longitude: Number(item.lon),
     category: toCategory(item),
+    city: a["city"] ?? a["town"] ?? a["village"] ?? a["municipality"] ?? a["county"],
+    state: a["state"] ?? a["region"],
+    country: a["country"],
+    placeType: item.type ?? item.class,
     isMock: false,
   };
 }
+
 
 function searchMock(query: string): GeoResult[] {
   const term = normalize(query.trim());
