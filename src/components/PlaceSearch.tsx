@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, MapPin, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { categoryLabels } from "@/lib/labels";
-import { isMapsConfigured, searchPlaces, type GeoResult } from "@/services/maps";
+import { searchPlaces, usesOpenStreetMap, type GeoResult } from "@/services/maps";
 
 export function PlaceSearch({ onSelect }: { onSelect: (result: GeoResult) => void }) {
   const [query, setQuery] = useState("");
@@ -15,32 +15,55 @@ export function PlaceSearch({ onSelect }: { onSelect: (result: GeoResult) => voi
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSearch(event: React.FormEvent) {
-    event.preventDefault();
+  const abortRef = useRef<AbortController | null>(null);
+
+  async function runSearch(term: string) {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     setError(null);
     try {
-      const found = await searchPlaces(query);
-      setResults(found);
+      const found = await searchPlaces(term, controller.signal);
+      if (!controller.signal.aborted) setResults(found);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Não foi possível buscar lugares agora.");
       setResults(null);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
+  }
+
+  // Debounce: respeita o limite de 1 requisição por segundo do Nominatim.
+  useEffect(() => {
+    const term = query.trim();
+    if (term.length < 3) {
+      setResults(null);
+      return;
+    }
+    const timer = setTimeout(() => void runSearch(term), 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  function handleSearch(event: React.FormEvent) {
+    event.preventDefault();
+    void runSearch(query.trim());
   }
 
   return (
     <div className="space-y-4">
-      {!isMapsConfigured ? (
-        <Alert>
-          <AlertTitle>API de mapas não configurada</AlertTitle>
-          <AlertDescription>
-            A busca usa uma base de demonstração (São Paulo e Rio de Janeiro). Você também pode
-            adicionar qualquer endereço manualmente.
-          </AlertDescription>
-        </Alert>
-      ) : null}
+      <Alert>
+        <AlertTitle>
+          {usesOpenStreetMap ? "Busca de endereços reais (OpenStreetMap)" : "API de mapas não configurada"}
+        </AlertTitle>
+        <AlertDescription>
+          {usesOpenStreetMap
+            ? "Digite pelo menos 3 letras: buscamos endereços reais no Nominatim/OpenStreetMap. Sem resposta do serviço, usamos a base de demonstração."
+            : "A busca usa uma base de demonstração (São Paulo e Rio de Janeiro). Você também pode adicionar qualquer endereço manualmente."}
+        </AlertDescription>
+      </Alert>
 
       <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row">
         <div className="flex-1 space-y-1.5">
@@ -49,7 +72,7 @@ export function PlaceSearch({ onSelect }: { onSelect: (result: GeoResult) => voi
             id="place-search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ex.: MASP, Parque Ibirapuera, Mercado Municipal"
+            placeholder="Ex.: MASP, Parque Ibirapuera, Av. Paulista 900"
           />
         </div>
         <Button type="submit" className="sm:mt-6" disabled={loading || query.trim().length < 2}>
