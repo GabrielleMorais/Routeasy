@@ -194,7 +194,11 @@ function ItineraryPage() {
           />
         ) : (
           <>
-            <RouteSummary days={days} />
+            <RouteSummary
+              days={days}
+              caption={`Totais da viagem inteira (${days.length} ${days.length === 1 ? "dia" : "dias"})`}
+            />
+
             <ConflictAlert days={days} />
 
             <Tabs value={activeDay} onValueChange={setActiveDay}>
@@ -208,9 +212,13 @@ function ItineraryPage() {
 
               {days.map((day) => (
                 <TabsContent key={day.id} value={String(day.dayNumber)} className="pt-4">
-                  <p className="pb-3 text-sm text-muted-foreground">
-                    {format(parseISO(day.date), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                  </p>
+                  <div className="space-y-1 pb-3">
+                    <p className="text-sm text-muted-foreground">
+                      {format(parseISO(day.date), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                    </p>
+                    <RouteSummary days={[day]} caption={`Somente o dia ${day.dayNumber}:`} compact />
+                  </div>
+
 
                   <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
                     <div className="lg:hidden">

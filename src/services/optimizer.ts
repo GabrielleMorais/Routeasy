@@ -53,6 +53,25 @@ function isOpen(place: Place, date: string, startMin: number, endMin: number): b
   return startMin >= oh.open && endMin <= oh.close;
 }
 
+/** Tempo máximo que aceitamos esperar por um local que ainda não abriu. */
+const MAX_WAIT_MINUTES = 90;
+
+/**
+ * Retorna o horário de início possível para a visita considerando o horário de
+ * funcionamento (permite aguardar a abertura) ou `null` se não for viável no dia.
+ */
+function startWithinOpening(place: Place, date: string, arrival: number): number | null {
+  const oh = place.openingHours;
+  if (!oh) return arrival;
+  const weekday = parseISO(date).getDay();
+  if (!oh.weekdays.includes(weekday)) return null;
+  const start = Math.max(arrival, oh.open);
+  if (start - arrival > MAX_WAIT_MINUTES) return null;
+  if (start + place.visitDurationMinutes > oh.close) return null;
+  return start;
+}
+
+
 let counter = 0;
 const uid = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${(counter += 1)}`;
 
@@ -121,9 +140,14 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
       const leg = estimateLeg(current, place, trip.transportMode);
       let arrival = cursor + leg.durationMinutes;
       if (forcedStart !== undefined) arrival = Math.max(arrival, forcedStart);
+      const possibleStart =
+        forcedStart !== undefined ? arrival : startWithinOpening(place, date, arrival);
+      if (possibleStart === null) return false;
+      arrival = possibleStart;
       const departure = arrival + place.visitDurationMinutes;
       if (departure > dayEnd) return false;
-      if (!isOpen(place, date, arrival, departure)) return false;
+      if (forcedStart !== undefined && !isOpen(place, date, arrival, departure)) return false;
+
 
       items.push({
         id: uid("item"),
@@ -162,8 +186,9 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
       current = place;
       remaining.delete(place.id);
       if (place.mealTag === "almoco") lunchDone = true;
-      if (place.mealTag === "jantar") dinnerDone = true;
+      else if (place.mealTag === "jantar") dinnerDone = true;
       else visits += 1;
+
       return true;
     };
 
@@ -200,10 +225,10 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
         .map((p) => {
           const leg = estimateLeg(current, p, trip.transportMode);
           const arrival = cursor + leg.durationMinutes;
-          const departure = arrival + p.visitDurationMinutes;
-          return { place: p, leg, arrival, departure };
+          const start = startWithinOpening(p, date, arrival);
+          return { place: p, leg, start, departure: (start ?? 0) + p.visitDurationMinutes };
         })
-        .filter((c) => c.departure <= dayEnd && isOpen(c.place, date, c.arrival, c.departure))
+        .filter((c) => c.start !== null && c.departure <= dayEnd)
         .sort(
           (a, b) =>
             PRIORITY_WEIGHT[a.place.priority] - PRIORITY_WEIGHT[b.place.priority] ||
@@ -214,6 +239,7 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
       if (!next) break;
       if (!scheduleVisit(next.place)) break;
     }
+
 
     if (prefs.returnToAccommodation && items.length > 1) {
       const leg = estimateLeg(current, accommodation, trip.transportMode);

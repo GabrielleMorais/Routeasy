@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ArrowLeft, ArrowRight, Info, MapPinned, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AppNavbar } from "@/components/AppNavbar";
@@ -53,8 +53,14 @@ export const Route = createFileRoute("/criar")({
 
 const stepLabels = ["Informações da viagem", "Adicionar lugares", "Preferências", "Gerar roteiro"];
 
+/** Data local atual do navegador no formato yyyy-MM-dd (sem conversão de fuso). */
+function todayLocalISO(): string {
+  return format(new Date(), "yyyy-MM-dd");
+}
+
 function emptyTrip(): Trip {
-  const today = format(new Date(), "yyyy-MM-dd");
+  const today = todayLocalISO();
+
   return {
     id: createId(),
     title: "",
@@ -106,7 +112,24 @@ function CreateTripStepper() {
     trip.accommodationAddress.trim().length >= 4 &&
     trip.startDate <= trip.endDate;
 
-  function savePlace(place: Place) {
+  const MIN_PLACES = 3;
+  const step2Valid = trip.places.length >= MIN_PLACES;
+
+  const normalize = (value: string) => value.trim().toLowerCase();
+
+  /** Retorna false quando o lugar é duplicado (mantém o diálogo aberto). */
+  function savePlace(place: Place): boolean {
+    const duplicated = trip.places.some(
+      (p) =>
+        p.id !== place.id &&
+        ((place.externalPlaceId && p.externalPlaceId === place.externalPlaceId) ||
+          (normalize(p.name) === normalize(place.name) &&
+            normalize(p.address) === normalize(place.address))),
+    );
+    if (duplicated) {
+      toast.error("Este lugar já foi adicionado ao roteiro.");
+      return false;
+    }
     setTrip((prev) => {
       const exists = prev.places.some((p) => p.id === place.id);
       return {
@@ -115,7 +138,12 @@ function CreateTripStepper() {
       };
     });
     setEditing(undefined);
+    toast.success(
+      trip.places.some((p) => p.id === place.id) ? "Lugar atualizado." : "Lugar adicionado.",
+    );
+    return true;
   }
+
 
   function movePlace(place: Place, delta: number) {
     setTrip((prev) => {
@@ -204,7 +232,16 @@ function CreateTripStepper() {
                   id="start"
                   type="date"
                   value={trip.startDate}
-                  onChange={(e) => update({ startDate: e.target.value })}
+                  min={todayLocalISO()}
+                  onChange={(e) => {
+                    const startDate = e.target.value;
+                    if (!startDate) return;
+                    setTrip((prev) => ({
+                      ...prev,
+                      startDate,
+                      endDate: prev.endDate < startDate ? startDate : prev.endDate,
+                    }));
+                  }}
                 />
               </div>
               <div className="space-y-1.5">
@@ -213,9 +250,15 @@ function CreateTripStepper() {
                   id="end"
                   type="date"
                   value={trip.endDate}
-                  onChange={(e) => update({ endDate: e.target.value })}
+                  min={trip.startDate}
+                  onChange={(e) => {
+                    const endDate = e.target.value;
+                    if (!endDate) return;
+                    update({ endDate: endDate < trip.startDate ? trip.startDate : endDate });
+                  }}
                 />
               </div>
+
               <div className="space-y-1.5">
                 <Label htmlFor="daily-start">Começar o dia às</Label>
                 <Input
@@ -288,15 +331,18 @@ function CreateTripStepper() {
               </Button>
             </div>
 
-            {trip.places.length < 3 ? (
+            {!step2Valid ? (
               <Alert>
                 <Info className="size-4" aria-hidden="true" />
-                <AlertTitle>Adicione pelo menos três lugares</AlertTitle>
+                <AlertTitle>Adicione pelo menos três lugares para continuar</AlertTitle>
                 <AlertDescription>
-                  Com três ou mais lugares conseguimos montar uma rota realmente útil por dia.
+                  Você adicionou {trip.places.length} de {MIN_PLACES} lugares. Com três ou mais
+                  lugares conseguimos montar uma rota realmente útil por dia — o botão “Continuar”
+                  será liberado ao atingir esse mínimo.
                 </AlertDescription>
               </Alert>
             ) : null}
+
 
             {trip.places.length === 0 ? (
               <EmptyState
@@ -499,8 +545,10 @@ function CreateTripStepper() {
                 <li>Viagem: {trip.title || "—"}</li>
                 <li>Destino: {trip.destination || "—"}</li>
                 <li>
-                  Período: {trip.startDate} até {trip.endDate}
+                  Período: {format(parseISO(trip.startDate), "dd/MM/yyyy")} até{" "}
+                  {format(parseISO(trip.endDate), "dd/MM/yyyy")}
                 </li>
+
                 <li>Lugares cadastrados: {trip.places.length}</li>
                 <li>
                   Janela diária: {trip.dailyStartTime} às {trip.dailyEndTime}
@@ -515,10 +563,11 @@ function CreateTripStepper() {
                   depois.
                 </AlertDescription>
               </Alert>
-              <Button size="lg" className="w-full" onClick={generate} disabled={trip.places.length === 0}>
+              <Button size="lg" className="w-full" onClick={generate} disabled={!step2Valid}>
                 <Sparkles className="size-4" aria-hidden="true" />
                 Gerar meu roteiro
               </Button>
+
             </CardContent>
           </Card>
         ) : null}
@@ -535,8 +584,9 @@ function CreateTripStepper() {
           {step < 3 ? (
             <Button
               onClick={() => setStep((s) => Math.min(3, s + 1))}
-              disabled={step === 0 && !step1Valid}
+              disabled={(step === 0 && !step1Valid) || (step === 1 && !step2Valid)}
             >
+
               Continuar
               <ArrowRight className="size-4" aria-hidden="true" />
             </Button>
