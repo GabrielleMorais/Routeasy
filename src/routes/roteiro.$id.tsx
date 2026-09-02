@@ -194,7 +194,11 @@ function ItineraryPage() {
           />
         ) : (
           <>
-            <RouteSummary days={days} />
+            <RouteSummary
+              days={days}
+              caption={`Totais da viagem inteira (${days.length} ${days.length === 1 ? "dia" : "dias"})`}
+            />
+
             <ConflictAlert days={days} />
 
             <Tabs value={activeDay} onValueChange={setActiveDay}>
