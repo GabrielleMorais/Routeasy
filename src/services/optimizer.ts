@@ -53,6 +53,25 @@ function isOpen(place: Place, date: string, startMin: number, endMin: number): b
   return startMin >= oh.open && endMin <= oh.close;
 }
 
+/** Tempo máximo que aceitamos esperar por um local que ainda não abriu. */
+const MAX_WAIT_MINUTES = 90;
+
+/**
+ * Retorna o horário de início possível para a visita considerando o horário de
+ * funcionamento (permite aguardar a abertura) ou `null` se não for viável no dia.
+ */
+function startWithinOpening(place: Place, date: string, arrival: number): number | null {
+  const oh = place.openingHours;
+  if (!oh) return arrival;
+  const weekday = parseISO(date).getDay();
+  if (!oh.weekdays.includes(weekday)) return null;
+  const start = Math.max(arrival, oh.open);
+  if (start - arrival > MAX_WAIT_MINUTES) return null;
+  if (start + place.visitDurationMinutes > oh.close) return null;
+  return start;
+}
+
+
 let counter = 0;
 const uid = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${(counter += 1)}`;
 
