@@ -48,9 +48,12 @@ function ItineraryPage() {
   const { trip, loading, update } = useTrip(id);
   const [history, setHistory] = useState<Trip[]>([]);
   const [activeDay, setActiveDay] = useState("1");
+  const [optimizing, setOptimizing] = useState(false);
+  const [lastWasOptimization, setLastWasOptimization] = useState(false);
 
   const days = useMemo(() => trip?.itinerary ?? [], [trip]);
   const currentDay = days.find((d) => String(d.dayNumber) === activeDay) ?? days[0];
+
 
   if (loading) {
     return (
