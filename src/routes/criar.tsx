@@ -112,7 +112,24 @@ function CreateTripStepper() {
     trip.accommodationAddress.trim().length >= 4 &&
     trip.startDate <= trip.endDate;
 
-  function savePlace(place: Place) {
+  const MIN_PLACES = 3;
+  const step2Valid = trip.places.length >= MIN_PLACES;
+
+  const normalize = (value: string) => value.trim().toLowerCase();
+
+  /** Retorna false quando o lugar é duplicado (mantém o diálogo aberto). */
+  function savePlace(place: Place): boolean {
+    const duplicated = trip.places.some(
+      (p) =>
+        p.id !== place.id &&
+        ((place.externalPlaceId && p.externalPlaceId === place.externalPlaceId) ||
+          (normalize(p.name) === normalize(place.name) &&
+            normalize(p.address) === normalize(place.address))),
+    );
+    if (duplicated) {
+      toast.error("Este lugar já foi adicionado ao roteiro.");
+      return false;
+    }
     setTrip((prev) => {
       const exists = prev.places.some((p) => p.id === place.id);
       return {
@@ -121,7 +138,12 @@ function CreateTripStepper() {
       };
     });
     setEditing(undefined);
+    toast.success(
+      trip.places.some((p) => p.id === place.id) ? "Lugar atualizado." : "Lugar adicionado.",
+    );
+    return true;
   }
+
 
   function movePlace(place: Place, delta: number) {
     setTrip((prev) => {
