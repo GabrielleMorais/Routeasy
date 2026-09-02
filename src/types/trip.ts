@@ -62,9 +62,13 @@ export interface Trip {
   destination: string;
   startDate: string;
   endDate: string;
+  accommodationName?: string | undefined;
   accommodationAddress: string;
   accommodationLatitude: number;
   accommodationLongitude: number;
+  accommodationPlaceId?: string | undefined;
+  accommodationSource?: "nominatim" | "manual" | undefined;
+
   dailyStartTime: string;
   dailyEndTime: string;
   transportMode: TransportMode;

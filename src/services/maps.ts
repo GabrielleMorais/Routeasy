@@ -25,8 +25,16 @@ export interface GeoResult {
   category: PlaceCategory;
   rating?: number;
   imageUrl?: string;
+  /** Cidade/município, quando informado pelo provedor. */
+  city?: string | undefined;
+  /** Estado/província. */
+  state?: string | undefined;
+  country?: string | undefined;
+  /** Tipo bruto do local no provedor (ex.: "restaurant", "road"). */
+  placeType?: string | undefined;
   isMock: boolean;
 }
+
 
 export interface RouteLeg {
   distanceKm: number;
@@ -162,7 +170,9 @@ interface NominatimItem {
   category?: string;
   type?: string;
   class?: string;
+  address?: Record<string, string>;
 }
+
 
 const CATEGORY_BY_OSM: Record<string, PlaceCategory> = {
   museum: "museu",
@@ -195,6 +205,7 @@ function toCategory(item: NominatimItem): PlaceCategory {
 function toGeoResult(item: NominatimItem): GeoResult {
   const parts = item.display_name.split(",").map((p) => p.trim());
   const name = item.name?.trim() || parts[0] || item.display_name;
+  const a = item.address ?? {};
   return {
     externalPlaceId: `osm:${item.osm_type ?? "n"}${item.osm_id ?? item.place_id}`,
     name,
@@ -202,9 +213,14 @@ function toGeoResult(item: NominatimItem): GeoResult {
     latitude: Number(item.lat),
     longitude: Number(item.lon),
     category: toCategory(item),
+    city: a["city"] ?? a["town"] ?? a["village"] ?? a["municipality"] ?? a["county"],
+    state: a["state"] ?? a["region"],
+    country: a["country"],
+    placeType: item.type ?? item.class,
     isMock: false,
   };
 }
+
 
 function searchMock(query: string): GeoResult[] {
   const term = normalize(query.trim());
@@ -215,12 +231,21 @@ function searchMock(query: string): GeoResult[] {
 
 /**
  * Busca endereços/lugares reais no Nominatim, com cache por termo.
+ * `near` (cidade/destino) prioriza resultados na região informada.
  * Em caso de falha ou zero resultados, cai para a base de demonstração.
  */
-export async function searchPlaces(query: string, signal?: AbortSignal): Promise<GeoResult[]> {
+export async function searchPlaces(
+  query: string,
+  signal?: AbortSignal,
+  options?: { near?: string | undefined },
+): Promise<GeoResult[]> {
   const term = query.trim();
   if (term.length < 3) return [];
-  const key = `search:${normalize(term)}`;
+  const near = options?.near?.trim() ?? "";
+  const biased = near && !normalize(term).includes(normalize(near).split(",")[0]!.trim())
+    ? `${term}, ${near}`
+    : term;
+  const key = `search:${normalize(biased)}`;
   const cached = cacheGet<GeoResult[]>(key);
   if (cached) return cached;
 
@@ -228,16 +253,17 @@ export async function searchPlaces(query: string, signal?: AbortSignal): Promise
 
   try {
     const params = new URLSearchParams({
-      q: term,
+      q: biased,
       format: "jsonv2",
       limit: "8",
-      addressdetails: "0",
+      addressdetails: "1",
       "accept-language": "pt-BR",
     });
     const items = await nominatimQueue(() =>
       getJson<NominatimItem[]>(`${NOMINATIM_URL}/search?${params.toString()}`, signal),
     );
     const results = items.map(toGeoResult);
+    if (results.length === 0 && biased !== term) return searchPlaces(term, signal);
     if (results.length === 0) return searchMock(term);
     cacheSet(key, results);
     return results;
@@ -246,6 +272,7 @@ export async function searchPlaces(query: string, signal?: AbortSignal): Promise
     return searchMock(term);
   }
 }
+
 
 /** Geocodificação síncrona (fallback offline/demonstração). */
 export function geocodeAddress(address: string): LatLng {

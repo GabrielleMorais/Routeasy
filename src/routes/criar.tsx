@@ -3,8 +3,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { format, parseISO } from "date-fns";
 import { ArrowLeft, ArrowRight, Info, MapPinned, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { AppNavbar } from "@/components/AppNavbar";
 import { EmptyState } from "@/components/EmptyState";
+
 import { PlaceCard } from "@/components/PlaceCard";
 import { PlaceFormDialog } from "@/components/PlaceFormDialog";
 import { TransportSelector } from "@/components/TransportSelector";
@@ -25,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { paceLabels } from "@/lib/labels";
-import { geocodeAddress, geocodeAddressAsync, warmupRoutes } from "@/services/maps";
+import { warmupRoutes } from "@/services/maps";
 import { optimizeTrip } from "@/services/optimizer";
 import { createId, createShareToken, tripStorage } from "@/services/storage";
 import type { Place, Trip, TravelPace } from "@/types/trip";
@@ -107,11 +109,19 @@ function CreateTripStepper() {
   const updatePrefs = (patch: Partial<Trip["preferences"]>) =>
     setTrip((prev) => ({ ...prev, preferences: { ...prev.preferences, ...patch } }));
 
+  const accommodationConfirmed =
+    trip.accommodationAddress.trim().length >= 4 &&
+    Number.isFinite(trip.accommodationLatitude) &&
+    Number.isFinite(trip.accommodationLongitude) &&
+    trip.accommodationLatitude !== 0 &&
+    trip.accommodationLongitude !== 0;
+
   const step1Valid =
     trip.title.trim().length >= 3 &&
     trip.destination.trim().length >= 2 &&
-    trip.accommodationAddress.trim().length >= 4 &&
+    accommodationConfirmed &&
     trip.startDate <= trip.endDate;
+
 
   const MIN_PLACES = 3;
   const step2Valid = trip.places.length >= MIN_PLACES;
@@ -159,15 +169,18 @@ function CreateTripStepper() {
   }
 
   async function generate() {
+    if (!accommodationConfirmed) {
+      toast.error("Selecione um endereço da lista para confirmar o ponto de partida.");
+      return;
+    }
     setGenerating(true);
     try {
-      const coords = await geocodeAddressAsync(trip.accommodationAddress);
-      const withCoords: Trip = {
-        ...trip,
-        accommodationLatitude: coords.latitude,
-        accommodationLongitude: coords.longitude,
-        status: "planejado",
+      // Coordenadas oficiais: as confirmadas no ponto de partida (sem fallback simulado).
+      const coords = {
+        latitude: trip.accommodationLatitude,
+        longitude: trip.accommodationLongitude,
       };
+      const withCoords: Trip = { ...trip, status: "planejado" };
       // Carrega distâncias/durações reais (OSRM) antes de otimizar.
       await warmupRoutes(
         [coords, ...withCoords.places.map((p) => ({ latitude: p.latitude, longitude: p.longitude }))],
@@ -185,6 +198,7 @@ function CreateTripStepper() {
       setGenerating(false);
     }
   }
+
 
 
   return (
@@ -229,15 +243,37 @@ function CreateTripStepper() {
                   placeholder="Ex.: São Paulo, SP"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="accommodation">Hospedagem ou ponto de partida</Label>
-                <Input
+              <div className="sm:col-span-2">
+                <AddressAutocomplete
                   id="accommodation"
+                  label="Hospedagem ou ponto de partida"
                   value={trip.accommodationAddress}
-                  onChange={(e) => update({ accommodationAddress: e.target.value })}
+                  near={trip.destination}
+                  confirmed={accommodationConfirmed}
                   placeholder="Ex.: Av. Paulista, 900 — São Paulo"
+                  onTextChange={(accommodationAddress) =>
+                    update({
+                      accommodationAddress,
+                      accommodationLatitude: 0,
+                      accommodationLongitude: 0,
+                      accommodationPlaceId: undefined,
+                      accommodationSource: undefined,
+                      accommodationName: undefined,
+                    })
+                  }
+                  onConfirm={(found) =>
+                    update({
+                      accommodationName: found.name,
+                      accommodationAddress: found.address,
+                      accommodationLatitude: found.latitude,
+                      accommodationLongitude: found.longitude,
+                      accommodationPlaceId: found.placeId,
+                      accommodationSource: found.source,
+                    })
+                  }
                 />
               </div>
+
               <div className="space-y-1.5">
                 <Label htmlFor="start">Data inicial</Label>
                 <Input
@@ -319,8 +355,9 @@ function CreateTripStepper() {
                   <Info className="size-4" aria-hidden="true" />
                   <AlertTitle>Preencha os campos obrigatórios</AlertTitle>
                   <AlertDescription>
-                    Nome da viagem, destino, hospedagem e um período válido são necessários para
-                    seguir.
+                    Nome da viagem, destino e um período válido são necessários. Além disso,
+                    selecione um endereço da lista para confirmar o ponto de partida.
+
                   </AlertDescription>
                 </Alert>
               ) : null}
@@ -395,14 +432,8 @@ function CreateTripStepper() {
                 </CardHeader>
                 <CardContent>
                   <RouteMap
-                    trip={{
-                      ...trip,
-                      accommodationLatitude:
-                        trip.accommodationLatitude || geocodeAddress(trip.accommodationAddress).latitude,
-                      accommodationLongitude:
-                        trip.accommodationLongitude ||
-                        geocodeAddress(trip.accommodationAddress).longitude,
-                    }}
+                    trip={trip}
+
                     days={[
                       {
                         id: "preview",
@@ -579,7 +610,7 @@ function CreateTripStepper() {
                 size="lg"
                 className="w-full"
                 onClick={() => void generate()}
-                disabled={!step2Valid || generating}
+                disabled={!step1Valid || !step2Valid || generating}
               >
                 <Sparkles className="size-4" aria-hidden="true" />
                 {generating ? "Calculando rotas reais…" : "Gerar meu roteiro"}
