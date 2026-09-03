@@ -39,15 +39,50 @@ const typeStyles: Record<ItineraryItem["itemType"], { color: string; label: stri
 interface Props {
   day: ItineraryDay;
   readOnly?: boolean;
+  /** Lugares da viagem: usados só para gerar os links de navegação externa. */
+  places?: Place[];
+  /** Ponto de partida (hospedagem), origem do primeiro trecho. */
+  origin?: LatLng | undefined;
   onMove?: (item: ItineraryItem, direction: -1 | 1) => void;
   onRemove?: (item: ItineraryItem) => void;
   onToggleLock?: (item: ItineraryItem) => void;
 }
 
-export function ItineraryTimeline({ day, readOnly, onMove, onRemove, onToggleLock }: Props) {
+export function ItineraryTimeline({
+  day,
+  readOnly,
+  places,
+  origin,
+  onMove,
+  onRemove,
+  onToggleLock,
+}: Props) {
+  const byId = new Map((places ?? []).map((p) => [p.id, p]));
+
+  function legPoints(index: number): { from: LatLng | undefined; to: Place | undefined } {
+    let to: Place | undefined;
+    for (let i = index + 1; i < day.items.length; i += 1) {
+      const candidate = day.items[i]!;
+      if (candidate.placeId) {
+        to = byId.get(candidate.placeId);
+        break;
+      }
+    }
+    let from: LatLng | undefined = origin;
+    for (let i = index - 1; i >= 0; i -= 1) {
+      const candidate = day.items[i]!;
+      if (candidate.placeId) {
+        const place = byId.get(candidate.placeId);
+        if (place) from = { latitude: place.latitude, longitude: place.longitude };
+        break;
+      }
+    }
+    return { from, to };
+  }
+
   return (
     <ol className="space-y-3">
-      {day.items.map((item) => {
+      {day.items.map((item, index) => {
         const style = typeStyles[item.itemType];
         const TransportIcon = item.transportMode ? transportIcons[item.transportMode] : MapPin;
         const isStop = item.itemType !== "deslocamento";
