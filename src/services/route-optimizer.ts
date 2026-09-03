@@ -115,7 +115,24 @@ export function recommendOrder(trip: Trip): Place[] {
   const start = startPoint(trip);
   const mode = trip.transportMode;
   const returnToStart = trip.preferences.returnToAccommodation;
-  const optimizedFree = twoOpt(start, nearestNeighbor(start, free, mode), mode, returnToStart);
+
+  // Prioridade primeiro (Essencial > Quero conhecer > Opcional) e, dentro de
+  // cada nível, sempre o próximo lugar mais próximo.
+  const tiers: Place["priority"][] = ["imperdivel", "quero_conhecer", "opcional"];
+  const optimizedFree: Place[] = [];
+  let cursor = start;
+  for (const tier of tiers) {
+    const group = free.filter((p) => p.priority === tier);
+    if (group.length === 0) continue;
+    const isLastTier = optimizedFree.length + group.length === free.length;
+    const ordered =
+      group.length > 2
+        ? twoOpt(cursor, nearestNeighbor(cursor, group, mode), mode, isLastTier && returnToStart)
+        : nearestNeighbor(cursor, group, mode);
+    optimizedFree.push(...ordered);
+    const last = ordered[ordered.length - 1]!;
+    cursor = { latitude: last.latitude, longitude: last.longitude };
+  }
 
   const queue = [...optimizedFree];
   return places.map((place) => (isPinned(place) ? place : queue.shift()!));

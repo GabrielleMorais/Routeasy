@@ -10,6 +10,7 @@ import {
   Home,
   Lock,
   MapPin,
+  Navigation,
   Trash2,
   Utensils,
 } from "lucide-react";
@@ -18,7 +19,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { categoryLabels, formatMinutes, transportLabels } from "@/lib/labels";
-import type { ItineraryDay, ItineraryItem, TransportMode } from "@/types/trip";
+import {
+  googleMapsDirectionsUrl,
+  moovitDirectionsUrl,
+  wazeNavigationUrl,
+  type LatLng,
+} from "@/services/maps";
+import type { ItineraryDay, ItineraryItem, Place, TransportMode } from "@/types/trip";
 
 const transportIcons: Record<TransportMode, typeof Car> = {
   carro: Car,
@@ -39,15 +46,50 @@ const typeStyles: Record<ItineraryItem["itemType"], { color: string; label: stri
 interface Props {
   day: ItineraryDay;
   readOnly?: boolean;
+  /** Lugares da viagem: usados só para gerar os links de navegação externa. */
+  places?: Place[];
+  /** Ponto de partida (hospedagem), origem do primeiro trecho. */
+  origin?: LatLng | undefined;
   onMove?: (item: ItineraryItem, direction: -1 | 1) => void;
   onRemove?: (item: ItineraryItem) => void;
   onToggleLock?: (item: ItineraryItem) => void;
 }
 
-export function ItineraryTimeline({ day, readOnly, onMove, onRemove, onToggleLock }: Props) {
+export function ItineraryTimeline({
+  day,
+  readOnly,
+  places,
+  origin,
+  onMove,
+  onRemove,
+  onToggleLock,
+}: Props) {
+  const byId = new Map((places ?? []).map((p) => [p.id, p]));
+
+  function legPoints(index: number): { from: LatLng | undefined; to: Place | undefined } {
+    let to: Place | undefined;
+    for (let i = index + 1; i < day.items.length; i += 1) {
+      const candidate = day.items[i]!;
+      if (candidate.placeId) {
+        to = byId.get(candidate.placeId);
+        break;
+      }
+    }
+    let from: LatLng | undefined = origin;
+    for (let i = index - 1; i >= 0; i -= 1) {
+      const candidate = day.items[i]!;
+      if (candidate.placeId) {
+        const place = byId.get(candidate.placeId);
+        if (place) from = { latitude: place.latitude, longitude: place.longitude };
+        break;
+      }
+    }
+    return { from, to };
+  }
+
   return (
     <ol className="space-y-3">
-      {day.items.map((item) => {
+      {day.items.map((item, index) => {
         const style = typeStyles[item.itemType];
         const TransportIcon = item.transportMode ? transportIcons[item.transportMode] : MapPin;
         const isStop = item.itemType !== "deslocamento";
@@ -88,9 +130,52 @@ export function ItineraryTimeline({ day, readOnly, onMove, onRemove, onToggleLoc
                   {item.itemType === "deslocamento" && item.travelMinutes ? (
                     <p className="text-sm text-muted-foreground">
                       {formatMinutes(item.travelMinutes)} · {item.travelDistance} km ·{" "}
-                      {item.transportMode ? transportLabels[item.transportMode] : ""}
+                      {item.transportMode ? transportLabels[item.transportMode] : ""} (estimativa)
                     </p>
                   ) : null}
+                  {item.itemType === "deslocamento"
+                    ? (() => {
+                        const { from, to } = legPoints(index);
+                        if (!to) return null;
+                        return (
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <Button asChild size="sm" variant="outline">
+                              <a
+                                href={wazeNavigationUrl(to)}
+                                target="_blank"
+                                rel="noreferrer noopener"
+                              >
+                                <Navigation className="size-3.5" aria-hidden="true" />
+                                Abrir no Waze
+                              </a>
+                            </Button>
+                            <Button asChild size="sm" variant="outline">
+                              <a
+                                href={googleMapsDirectionsUrl(
+                                  from ? [from, to] : [to],
+                                  item.transportMode ?? "carro",
+                                )}
+                                target="_blank"
+                                rel="noreferrer noopener"
+                              >
+                                <MapPin className="size-3.5" aria-hidden="true" />
+                                Abrir no Google Maps
+                              </a>
+                            </Button>
+                            <Button asChild size="sm" variant="outline">
+                              <a
+                                href={moovitDirectionsUrl(to, from, to.name)}
+                                target="_blank"
+                                rel="noreferrer noopener"
+                              >
+                                <Bus className="size-3.5" aria-hidden="true" />
+                                Abrir no Moovit
+                              </a>
+                            </Button>
+                          </div>
+                        );
+                      })()
+                    : null}
                   {item.address ? (
                     <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
                       <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />

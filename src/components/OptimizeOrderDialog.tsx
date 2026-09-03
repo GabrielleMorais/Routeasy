@@ -115,7 +115,7 @@ export function OptimizeOrderDialog({ trip, onApply, variant = "outline" }: Prop
               <Sparkles className="size-4" aria-hidden="true" />
               <AlertTitle>
                 {comparison.improved
-                  ? "Rota recomendada encontrada"
+                  ? "Encontramos uma ordem mais eficiente para reduzir deslocamentos."
                   : "A ordem atual já é uma boa opção"}
               </AlertTitle>
               <AlertDescription>
@@ -134,7 +134,7 @@ export function OptimizeOrderDialog({ trip, onApply, variant = "outline" }: Prop
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Manter ordem atual
+            Manter minha ordem
           </Button>
           <Button
             disabled={loading || !comparison}
@@ -144,7 +144,7 @@ export function OptimizeOrderDialog({ trip, onApply, variant = "outline" }: Prop
               setOpen(false);
             }}
           >
-            Aplicar rota recomendada
+            Aplicar ordem sugerida
             <ArrowRight className="size-4" aria-hidden="true" />
           </Button>
         </DialogFooter>
