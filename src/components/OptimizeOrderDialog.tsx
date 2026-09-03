@@ -144,7 +144,7 @@ export function OptimizeOrderDialog({ trip, onApply, variant = "outline" }: Prop
               setOpen(false);
             }}
           >
-            Aplicar rota recomendada
+            Aplicar ordem sugerida
             <ArrowRight className="size-4" aria-hidden="true" />
           </Button>
         </DialogFooter>
