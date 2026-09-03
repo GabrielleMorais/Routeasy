@@ -134,7 +134,7 @@ export function OptimizeOrderDialog({ trip, onApply, variant = "outline" }: Prop
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Manter ordem atual
+            Manter minha ordem
           </Button>
           <Button
             disabled={loading || !comparison}
