@@ -115,7 +115,7 @@ export function OptimizeOrderDialog({ trip, onApply, variant = "outline" }: Prop
               <Sparkles className="size-4" aria-hidden="true" />
               <AlertTitle>
                 {comparison.improved
-                  ? "Rota recomendada encontrada"
+                  ? "Encontramos uma ordem mais eficiente para reduzir deslocamentos."
                   : "A ordem atual já é uma boa opção"}
               </AlertTitle>
               <AlertDescription>
