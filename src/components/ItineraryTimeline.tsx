@@ -10,6 +10,7 @@ import {
   Home,
   Lock,
   MapPin,
+  Navigation,
   Trash2,
   Utensils,
 } from "lucide-react";
