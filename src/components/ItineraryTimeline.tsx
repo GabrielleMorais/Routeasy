@@ -18,7 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { categoryLabels, formatMinutes, transportLabels } from "@/lib/labels";
-import type { ItineraryDay, ItineraryItem, TransportMode } from "@/types/trip";
+import {
+  googleMapsDirectionsUrl,
+  moovitDirectionsUrl,
+  wazeNavigationUrl,
+  type LatLng,
+} from "@/services/maps";
+import type { ItineraryDay, ItineraryItem, Place, TransportMode } from "@/types/trip";
 
 const transportIcons: Record<TransportMode, typeof Car> = {
   carro: Car,
