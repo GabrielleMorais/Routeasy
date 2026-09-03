@@ -239,7 +239,7 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
                       </p>
                     ) : null}
                     <p className="text-sm text-muted-foreground">
-                      Aproximadamente {s.distanceKm.toFixed(1)} km do ponto de partida
+                      Aproximadamente {s.distanceKm.toFixed(1)} km dos lugares do seu roteiro
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-2">
