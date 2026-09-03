@@ -152,7 +152,7 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
         <DialogHeader>
           <DialogTitle>Descubra lugares próximos</DialogTitle>
           <DialogDescription>
-            Sugestões reais do OpenStreetMap a partir do seu ponto de partida
+            Sugestões reais do OpenStreetMap próximas aos lugares que você já adicionou ao roteiro
             {trip.destination ? ` em ${trip.destination}` : ""}.
           </DialogDescription>
         </DialogHeader>
