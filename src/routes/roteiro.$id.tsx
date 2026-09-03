@@ -184,6 +184,11 @@ function ItineraryPage() {
   const timelineProps = currentDay
     ? {
         day: currentDay,
+        places: trip.places,
+        origin: {
+          latitude: trip.accommodationLatitude,
+          longitude: trip.accommodationLongitude,
+        },
         onMove: (item: ItineraryItem, direction: -1 | 1) => moveItem(currentDay, item, direction),
         onRemove: (item: ItineraryItem) => removeItem(currentDay, item),
         onToggleLock: (item: ItineraryItem) => toggleLock(currentDay, item),
