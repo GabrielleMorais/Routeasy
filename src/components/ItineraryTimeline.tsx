@@ -129,9 +129,52 @@ export function ItineraryTimeline({
                   {item.itemType === "deslocamento" && item.travelMinutes ? (
                     <p className="text-sm text-muted-foreground">
                       {formatMinutes(item.travelMinutes)} · {item.travelDistance} km ·{" "}
-                      {item.transportMode ? transportLabels[item.transportMode] : ""}
+                      {item.transportMode ? transportLabels[item.transportMode] : ""} (estimativa)
                     </p>
                   ) : null}
+                  {item.itemType === "deslocamento"
+                    ? (() => {
+                        const { from, to } = legPoints(index);
+                        if (!to) return null;
+                        return (
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <Button asChild size="sm" variant="outline">
+                              <a
+                                href={wazeNavigationUrl(to)}
+                                target="_blank"
+                                rel="noreferrer noopener"
+                              >
+                                <Navigation className="size-3.5" aria-hidden="true" />
+                                Abrir no Waze
+                              </a>
+                            </Button>
+                            <Button asChild size="sm" variant="outline">
+                              <a
+                                href={googleMapsDirectionsUrl(
+                                  from ? [from, to] : [to],
+                                  item.transportMode ?? "carro",
+                                )}
+                                target="_blank"
+                                rel="noreferrer noopener"
+                              >
+                                <MapPin className="size-3.5" aria-hidden="true" />
+                                Abrir no Google Maps
+                              </a>
+                            </Button>
+                            <Button asChild size="sm" variant="outline">
+                              <a
+                                href={moovitDirectionsUrl(to, from, to.name)}
+                                target="_blank"
+                                rel="noreferrer noopener"
+                              >
+                                <Bus className="size-3.5" aria-hidden="true" />
+                                Abrir no Moovit
+                              </a>
+                            </Button>
+                          </div>
+                        );
+                      })()
+                    : null}
                   {item.address ? (
                     <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
                       <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
