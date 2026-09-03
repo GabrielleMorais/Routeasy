@@ -52,14 +52,18 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
   const [priority, setPriority] = useState<Priority>("quero_conhecer");
   const abortRef = useRef<AbortController | null>(null);
 
-  const center = {
-    latitude: trip.accommodationLatitude,
-    longitude: trip.accommodationLongitude,
-  };
-  const hasCenter =
-    Number.isFinite(center.latitude) &&
-    Number.isFinite(center.longitude) &&
-    !(center.latitude === 0 && center.longitude === 0);
+  // Referência da busca: os lugares já adicionados ao roteiro (1º e 2º),
+  // e não mais o ponto de partida/hospedagem.
+  const references = trip.places
+    .filter(
+      (p) =>
+        Number.isFinite(p.latitude) &&
+        Number.isFinite(p.longitude) &&
+        !(p.latitude === 0 && p.longitude === 0),
+    )
+    .slice(0, 2)
+    .map((p) => ({ latitude: p.latitude, longitude: p.longitude }));
+  const hasReferences = references.length > 0;
 
   async function load(next: NearbyCategory) {
     // Cancela a requisição anterior (troca de categoria ou clique repetido).
@@ -70,8 +74,33 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const found = await fetchNearbyPlaces(center, next, 3000, controller.signal);
+      // Consulta cada região de referência (1º e, se houver, 2º lugar do roteiro).
+      const perReference: NearbySuggestion[][] = [];
+      for (const ref of references) {
+        if (controller.signal.aborted) return;
+        try {
+          perReference.push(await fetchNearbyPlaces(ref, next, 3000, controller.signal));
+        } catch (err) {
+          if (controller.signal.aborted) return;
+          console.warn("[nearby] Busca falhou para uma das referências:", err);
+        }
+      }
       if (controller.signal.aborted) return;
+      if (perReference.length === 0) throw new Error("Todas as consultas falharam.");
+
+      // Mescla, remove duplicados e usa a menor distância até qualquer referência.
+      const seen = new Set<string>();
+      const merged: NearbySuggestion[] = [];
+      for (const list of perReference) {
+        for (const s of list) {
+          const key = s.externalPlaceId;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          merged.push(s);
+        }
+      }
+      merged.sort((a, b) => a.distanceKm - b.distanceKm);
+      const found = merged.slice(0, 10);
       setResults(found);
       if (found.length === 0) setError("Nenhum lugar encontrado nessa categoria por perto.");
     } catch (err) {
@@ -88,7 +117,7 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
-    if (next && results.length === 0 && hasCenter) void load(category);
+    if (next && results.length === 0 && hasReferences) void load(category);
   }
 
   const added = new Set(
@@ -114,7 +143,7 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" disabled={!hasCenter}>
+        <Button variant="outline" disabled={!hasReferences}>
           <Compass className="size-4" aria-hidden="true" />
           Ver lugares próximos
         </Button>
@@ -123,7 +152,7 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
         <DialogHeader>
           <DialogTitle>Descubra lugares próximos</DialogTitle>
           <DialogDescription>
-            Sugestões reais do OpenStreetMap a partir do seu ponto de partida
+            Sugestões reais do OpenStreetMap próximas aos lugares que você já adicionou ao roteiro
             {trip.destination ? ` em ${trip.destination}` : ""}.
           </DialogDescription>
         </DialogHeader>
@@ -210,7 +239,7 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
                       </p>
                     ) : null}
                     <p className="text-sm text-muted-foreground">
-                      Aproximadamente {s.distanceKm.toFixed(1)} km do ponto de partida
+                      Aproximadamente {s.distanceKm.toFixed(1)} km dos lugares do seu roteiro
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-2">
