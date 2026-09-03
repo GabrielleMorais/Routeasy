@@ -274,7 +274,15 @@ function ItineraryPage() {
                           {timelineProps && day.id === currentDay?.id ? (
                             <ItineraryTimeline {...timelineProps} />
                           ) : (
-                            <ItineraryTimeline day={day} readOnly />
+                            <ItineraryTimeline
+                              day={day}
+                              readOnly
+                              places={trip.places}
+                              origin={{
+                                latitude: trip.accommodationLatitude,
+                                longitude: trip.accommodationLongitude,
+                              }}
+                            />
                           )}
                           <MobileTravelMode
                             trip={trip}
@@ -292,7 +300,15 @@ function ItineraryPage() {
                       {timelineProps && day.id === currentDay?.id ? (
                         <ItineraryTimeline {...timelineProps} />
                       ) : (
-                        <ItineraryTimeline day={day} readOnly />
+                        <ItineraryTimeline
+                              day={day}
+                              readOnly
+                              places={trip.places}
+                              origin={{
+                                latitude: trip.accommodationLatitude,
+                                longitude: trip.accommodationLongitude,
+                              }}
+                            />
                       )}
                     </div>
                     <aside className="hidden lg:block">
