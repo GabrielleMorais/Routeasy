@@ -13,7 +13,7 @@ export const categoryLabels: Record<PlaceCategory, string> = {
 };
 
 export const priorityLabels: Record<Priority, string> = {
-  imperdivel: "Imperdível",
+  imperdivel: "Essencial",
   quero_conhecer: "Quero conhecer",
   opcional: "Opcional",
 };
