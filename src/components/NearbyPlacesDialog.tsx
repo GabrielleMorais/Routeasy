@@ -143,7 +143,7 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" disabled={!hasCenter}>
+        <Button variant="outline" disabled={!hasReferences}>
           <Compass className="size-4" aria-hidden="true" />
           Ver lugares próximos
         </Button>
