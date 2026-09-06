@@ -735,7 +735,7 @@ export async function fetchNearbyPlaces(
   const around = `(around:${radiusMeters},${center.latitude},${center.longitude})`;
   const body = `[out:json][timeout:8];(${OVERPASS_FILTERS[category]
     .map((f) => `node${f}${around};way${f}${around};`)
-    .join("")});out center tags 40;`;
+    .join("")});out tags center 40;`;
 
   let elements: OverpassElement[] | null = null;
   let lastError: unknown = null;
