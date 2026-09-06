@@ -1,6 +1,6 @@
 import { Bus } from "lucide-react";
 import {
-  createMoovitDeepLink,
+  createMoovitAppLink,
   createMoovitWebLink,
   isMobileDevice,
   isValidMoovitLeg,
@@ -22,8 +22,8 @@ interface MoovitLegButtonsProps {
 /**
  * Botões de um trecho no Moovit. No celular, o botão principal é um <a> com o
  * deeplink oficial do app (acionado pelo clique real do usuário) e um link
- * discreto para a versão web; no desktop, apenas o link web. Só é renderizado
- * quando o trecho tem coordenadas e nomes válidos.
+ * discreto para a versão web; no desktop, apenas o link web (abre o destino).
+ * Só é renderizado quando o trecho tem coordenadas e nomes válidos.
  */
 export function MoovitLegButtons({
   origin,
@@ -49,9 +49,9 @@ export function MoovitLegButtons({
     return (
       <span className={className}>
         <Button asChild size={size} variant="outline" className={size === "default" ? "w-full" : undefined}>
-          <a href={createMoovitDeepLink(leg)}>
+          <a href={createMoovitAppLink(leg)}>
             <Bus className={size === "sm" ? "size-3.5" : "size-4"} aria-hidden="true" />
-            Abrir no app Moovit
+            Abrir trajeto no app Moovit
           </a>
         </Button>
         <a
@@ -60,18 +60,24 @@ export function MoovitLegButtons({
           rel="noreferrer noopener"
           className="mt-1 inline-block text-xs text-muted-foreground underline underline-offset-2"
         >
-          Não abriu? Usar versão web
+          Não abriu? Ver destino no site do Moovit
         </a>
       </span>
     );
   }
 
   return (
-    <Button asChild size={size} variant="outline" className={className ?? (size === "default" ? "w-full" : undefined)}>
-      <a href={webUrl} target="_blank" rel="noreferrer noopener">
-        <Bus className={size === "sm" ? "size-3.5" : "size-4"} aria-hidden="true" />
-        Ver destino no Moovit
-      </a>
-    </Button>
+    <span className={className}>
+      <Button asChild size={size} variant="outline" className={size === "default" ? "w-full" : undefined}>
+        <a href={webUrl} target="_blank" rel="noreferrer noopener">
+          <Bus className={size === "sm" ? "size-3.5" : "size-4"} aria-hidden="true" />
+          Ver destino no Moovit
+        </a>
+      </Button>
+      <span className="mt-1 block text-xs text-muted-foreground">
+        A versão web abre o destino, não necessariamente o trajeto completo.
+      </span>
+    </span>
   );
 }
+

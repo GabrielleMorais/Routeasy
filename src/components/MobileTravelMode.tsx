@@ -4,8 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { hasValidLeg, wazeNavigationUrl } from "@/services/maps";
+import {
+  googleMapsDirectionsUrl,
+  hasValidLeg,
+  navigationApps,
+  wazeNavigationUrl,
+} from "@/services/maps";
 import { MoovitLegButtons } from "@/components/MoovitLegButtons";
+
 import type { ItineraryDay, ItineraryItem, Trip } from "@/types/trip";
 
 interface Props {
@@ -73,7 +79,7 @@ export function MobileTravelMode({ trip, day, onUpdateStatus }: Props) {
               </p>
               {next.address ? <p className="text-sm text-muted-foreground">{next.address}</p> : null}
               <div className="grid gap-2 sm:grid-cols-2">
-                {nextPlace && trip.transportMode === "carro" ? (
+                {nextPlace && navigationApps(trip.transportMode).waze ? (
                   <Button asChild>
                     <a
                       href={wazeNavigationUrl(nextPlace)}
@@ -86,7 +92,7 @@ export function MobileTravelMode({ trip, day, onUpdateStatus }: Props) {
                   </Button>
                 ) : null}
                 {nextPlace &&
-                trip.transportMode === "transporte_publico" &&
+                navigationApps(trip.transportMode).moovit &&
                 hasValidLeg(legOrigin, nextPlace) ? (
                   <MoovitLegButtons
                     origin={legOrigin}
@@ -97,9 +103,13 @@ export function MobileTravelMode({ trip, day, onUpdateStatus }: Props) {
                 ) : null}
                 <Button asChild variant="secondary">
                   <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-                      next.address ?? trip.destination,
-                    )}`}
+                    href={
+                      nextPlace
+                        ? googleMapsDirectionsUrl([legOrigin, nextPlace], trip.transportMode)
+                        : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                            next.address ?? trip.destination,
+                          )}`
+                    }
                     target="_blank"
                     rel="noreferrer noopener"
                   >
@@ -107,6 +117,7 @@ export function MobileTravelMode({ trip, day, onUpdateStatus }: Props) {
                     Como chegar
                   </a>
                 </Button>
+
                 <Button onClick={() => onUpdateStatus(next, "concluido")}>
                   <Check className="size-4" aria-hidden="true" />
                   Concluído

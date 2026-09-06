@@ -23,9 +23,11 @@ import { MoovitLegButtons } from "@/components/MoovitLegButtons";
 import {
   googleMapsDirectionsUrl,
   hasValidLeg,
+  navigationApps,
   wazeNavigationUrl,
   type LatLng,
 } from "@/services/maps";
+
 import type { ItineraryDay, ItineraryItem, Place, TransportMode } from "@/types/trip";
 
 const transportIcons: Record<TransportMode, typeof Car> = {
@@ -147,24 +149,25 @@ export function ItineraryTimeline({
                     ? (() => {
                         const { from, fromName, to } = legPoints(index);
                         if (!to) return null;
+                        const mode = item.transportMode ?? "carro";
+                        const apps = navigationApps(mode);
                         return (
                           <div className="flex flex-wrap gap-2 pt-1">
+                            {apps.waze ? (
+                              <Button asChild size="sm" variant="outline">
+                                <a
+                                  href={wazeNavigationUrl(to)}
+                                  target="_blank"
+                                  rel="noreferrer noopener"
+                                >
+                                  <Navigation className="size-3.5" aria-hidden="true" />
+                                  Abrir no Waze
+                                </a>
+                              </Button>
+                            ) : null}
                             <Button asChild size="sm" variant="outline">
                               <a
-                                href={wazeNavigationUrl(to)}
-                                target="_blank"
-                                rel="noreferrer noopener"
-                              >
-                                <Navigation className="size-3.5" aria-hidden="true" />
-                                Abrir no Waze
-                              </a>
-                            </Button>
-                            <Button asChild size="sm" variant="outline">
-                              <a
-                                href={googleMapsDirectionsUrl(
-                                  from ? [from, to] : [to],
-                                  item.transportMode ?? "carro",
-                                )}
+                                href={googleMapsDirectionsUrl(from ? [from, to] : [to], mode)}
                                 target="_blank"
                                 rel="noreferrer noopener"
                               >
@@ -172,9 +175,7 @@ export function ItineraryTimeline({
                                 Abrir no Google Maps
                               </a>
                             </Button>
-                            {item.transportMode === "transporte_publico" &&
-                            from &&
-                            hasValidLeg(from, to) ? (
+                            {apps.moovit && from && hasValidLeg(from, to) ? (
                               <MoovitLegButtons
                                 size="sm"
                                 origin={from}
@@ -187,6 +188,7 @@ export function ItineraryTimeline({
                         );
                       })()
                     : null}
+
                   {item.address ? (
                     <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
                       <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />

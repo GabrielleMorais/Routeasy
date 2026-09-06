@@ -16,17 +16,21 @@ import { Separator } from "@/components/ui/separator";
 import { encodeTrip } from "@/services/storage";
 import type { Trip } from "@/types/trip";
 
+/** Resumo compacto em texto — sem JSON nem dados técnicos. */
 function buildSummary(trip: Trip): string {
   const lines = [`*${trip.title}* — ${trip.destination}`];
   (trip.itinerary ?? []).forEach((day) => {
     lines.push("", `Dia ${day.dayNumber} (${day.date})`);
     day.items
-      .filter((item) => item.itemType !== "deslocamento")
+      .filter((item) => item.itemType !== "deslocamento" && item.itemType !== "partida")
       .forEach((item) => lines.push(`${item.startTime}–${item.endTime} ${item.title}`));
   });
   lines.push("", "Roteiro recomendado com base nas informações disponíveis — Routeasy");
   return lines.join("\n");
 }
+
+/** Acima deste tamanho, o link fica grande demais para colar em apps de mensagem. */
+const MAX_LINK_LENGTH = 6000;
 
 export function ShareTripDialog({ trip }: { trip: Trip }) {
   const [open, setOpen] = useState(false);
@@ -35,6 +39,7 @@ export function ShareTripDialog({ trip }: { trip: Trip }) {
       ? `${window.location.origin}/compartilhado/${encodeTrip(trip)}`
       : "";
   const summary = buildSummary(trip);
+  const linkTooLong = link.length > MAX_LINK_LENGTH;
 
   async function copy(value: string, message: string) {
     try {
@@ -44,6 +49,17 @@ export function ShareTripDialog({ trip }: { trip: Trip }) {
       toast.error("Não foi possível copiar. Copie manualmente o texto exibido.");
     }
   }
+
+  function copyLink() {
+    if (linkTooLong) {
+      toast.error(
+        "Este roteiro é grande demais para compartilhar por link. Use o resumo do WhatsApp ou exporte em PDF.",
+      );
+      return;
+    }
+    void copy(link, "Link copiado!");
+  }
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -68,7 +84,7 @@ export function ShareTripDialog({ trip }: { trip: Trip }) {
             <Input id="share-link" readOnly value={link} />
             <Button
               variant="secondary"
-              onClick={() => copy(link, "Link copiado!")}
+              onClick={copyLink}
               aria-label="Copiar link"
             >
               <Copy className="size-4" />

@@ -294,14 +294,15 @@ export async function searchPlaces(
     );
     const results = items.map(toGeoResult);
     if (results.length === 0 && biased !== term) return searchPlaces(term, signal);
-    if (results.length === 0) return searchMock(term);
+    if (results.length === 0) return [];
     cacheSet(key, results);
     return results;
   } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") throw error;
-    return searchMock(term);
+    // Sem dados fictícios: a falha é informada para que o usuário cadastre manualmente.
+    throw error;
   }
 }
+
 
 
 /** Geocodificação síncrona (fallback offline/demonstração). */
@@ -545,16 +546,18 @@ export interface MoovitLeg {
 export function isValidMoovitLeg(leg: MoovitLeg): boolean {
   const { originLat, originLon, destinationLat, destinationLon, originName, destinationName } = leg;
   const coords = [originLat, originLon, destinationLat, destinationLon];
-  if (coords.some((v) => typeof v !== "number" || Number.isNaN(v))) return false;
+  if (coords.some((v) => typeof v !== "number" || !Number.isFinite(v))) return false;
   if (originLat < -90 || originLat > 90 || destinationLat < -90 || destinationLat > 90) return false;
   if (originLon < -180 || originLon > 180 || destinationLon < -180 || destinationLon > 180)
     return false;
   if (!originName?.trim() || !destinationName?.trim()) return false;
+  // Origem e destino precisam ser pontos diferentes.
+  if (originLat === destinationLat && originLon === destinationLon) return false;
   return true;
 }
 
 /** Deep link oficial do app Moovit para um trecho com origem e destino reais. */
-export function createMoovitDeepLink(leg: MoovitLeg): string {
+export function createMoovitAppLink(leg: MoovitLeg): string {
   const params = new URLSearchParams({
     orig_lat: String(leg.originLat),
     orig_lon: String(leg.originLon),
@@ -568,7 +571,7 @@ export function createMoovitDeepLink(leg: MoovitLeg): string {
   return `moovit://directions?${params.toString()}`;
 }
 
-/** Alternativa web oficial do Moovit (usada no desktop e quando o app não abre). */
+/** Alternativa web oficial do Moovit: abre o destino (não o trajeto completo). */
 export function createMoovitWebLink(leg: MoovitLeg): string {
   const params = new URLSearchParams({
     lang: "pt-br",
@@ -583,6 +586,53 @@ export function isMobileDevice(): boolean {
   if (typeof window === "undefined") return false;
   return /android|iphone|ipad|ipod/i.test(window.navigator.userAgent);
 }
+
+/** Quais aplicativos de navegação fazem sentido para cada meio de transporte. */
+export function navigationApps(mode: TransportMode): { waze: boolean; moovit: boolean } {
+  return {
+    waze: mode === "carro",
+    moovit: mode === "transporte_publico",
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Fonte única de distância e tempo de deslocamento                             */
+/* -------------------------------------------------------------------------- */
+
+export interface RouteMetrics {
+  distanceKm: number;
+  travelMinutes: number;
+  source: "osrm" | "estimate";
+  includesReturnToStart: boolean;
+}
+
+/**
+ * Métrica única da rota: soma apenas os trechos de deslocamento, na mesma ordem
+ * e com a mesma regra usada pelo otimizador (`estimateLeg`, que reaproveita o
+ * cache real do OSRM quando disponível).
+ */
+export function computeRouteMetrics(
+  points: LatLng[],
+  mode: TransportMode,
+  includesReturnToStart = false,
+): RouteMetrics {
+  let distanceKm = 0;
+  let travelMinutes = 0;
+  let real = points.length > 1;
+  for (let i = 1; i < points.length; i += 1) {
+    const leg = estimateLeg(points[i - 1]!, points[i]!, mode);
+    distanceKm += leg.distanceKm;
+    travelMinutes += leg.durationMinutes;
+    if (leg.isMock) real = false;
+  }
+  return {
+    distanceKm: Number(distanceKm.toFixed(1)),
+    travelMinutes: Math.round(travelMinutes),
+    source: real ? "osrm" : "estimate",
+    includesReturnToStart,
+  };
+}
+
 
 
 /* -------------------------------------------------------------------------- */
@@ -607,13 +657,14 @@ const OVERPASS_ENDPOINTS = [
 ];
 
 const OVERPASS_FILTERS: Record<NearbyCategory, string[]> = {
-  turismo: ['["tourism"~"attraction|viewpoint|artwork"]'],
-  cultura: ['["tourism"="museum"]', '["amenity"="theatre"]'],
-  parques: ['["leisure"="park"]', '["leisure"="garden"]'],
+  turismo: ['["tourism"~"^(attraction|viewpoint)$"]'],
+  cultura: ['["tourism"="museum"]', '["amenity"="arts_centre"]'],
+  parques: ['["leisure"~"^(park|garden)$"]'],
   restaurantes: ['["amenity"="restaurant"]'],
   cafes: ['["amenity"="cafe"]'],
-  compras: ['["shop"="mall"]', '["amenity"="marketplace"]'],
+  compras: ['["shop"]', '["tourism"="mall"]'],
 };
+
 
 const NEARBY_CATEGORY_TO_PLACE: Record<NearbyCategory, PlaceCategory> = {
   turismo: "ponto_turistico",
@@ -653,8 +704,9 @@ function tagsToAddress(tags: Record<string, string>): string {
   return parts.join(" — ");
 }
 
-/** Tempo máximo de espera por servidor Overpass (8s). */
-const OVERPASS_TIMEOUT_MS = 8_000;
+/** Tempo máximo de espera por servidor Overpass (3,5 s — total nunca passa de 7 s). */
+const OVERPASS_TIMEOUT_MS = 3_500;
+
 
 /** Cache das sugestões por categoria + coordenada, válido por 10 minutos. */
 const NEARBY_TTL_MS = 10 * 60 * 1000;
@@ -715,25 +767,28 @@ async function queryOverpass(
 
 /**
  * Busca lugares reais do OpenStreetMap por categoria e proximidade (Overpass).
- * Apenas leitura, com cache e no máximo 10 resultados por consulta.
- * Tenta cada servidor público no máximo uma vez; se todos falharem, lança erro.
+ * Uma única consulta compacta cobre todos os centros de referência (1º e 2º
+ * lugares do roteiro). Cache de 10 minutos por categoria + coordenadas.
+ * Se as duas instâncias falharem, lança erro — nunca devolve dados fictícios.
  */
 export async function fetchNearbyPlaces(
-  center: LatLng,
+  centers: LatLng[],
   category: NearbyCategory,
-  radiusMeters = 2500,
+  radiusMeters = 1500,
   signal?: AbortSignal,
 ): Promise<NearbySuggestion[]> {
-  if (!isValidCoord(center)) {
-    throw new Error("Ponto de partida sem coordenadas válidas. Confirme o endereço da hospedagem.");
+  const valid = centers.filter(isValidCoord);
+  if (valid.length === 0) {
+    throw new Error("Adicione ao menos um lugar com coordenadas válidas ao roteiro.");
   }
-  const key = `nearby:${category}:${coordKey(center)}:${radiusMeters}`;
+  const key = `nearby:${category}:${valid.map(coordKey).join("|")}:${radiusMeters}`;
   const cached = nearbyCacheGet(key);
   if (cached) return cached;
 
-  const around = `(around:${radiusMeters},${center.latitude},${center.longitude})`;
-  const body = `[out:json][timeout:8];(${OVERPASS_FILTERS[category]
-    .map((f) => `node${f}${around};way${f}${around};`)
+  // Uma consulta única: cada filtro da categoria é aplicado a todos os centros.
+  const arounds = valid.map((c) => `(around:${radiusMeters},${c.latitude},${c.longitude})`);
+  const body = `[out:json][timeout:6];(${OVERPASS_FILTERS[category]
+    .map((f) => arounds.map((a) => `node${f}${a};way${f}${a};`).join(""))
     .join("")});out tags center 40;`;
 
   let elements: OverpassElement[] | null = null;
@@ -741,13 +796,11 @@ export async function fetchNearbyPlaces(
   for (const endpoint of OVERPASS_ENDPOINTS) {
     if (signal?.aborted) throw signal.reason ?? new DOMException("AbortError", "AbortError");
     try {
-      console.info(`[nearby] Consultando Overpass: ${endpoint} (${category})`);
       elements = await queryOverpass(endpoint, body, signal);
       break;
     } catch (error) {
       if (signal?.aborted) throw signal.reason ?? new DOMException("AbortError", "AbortError");
       lastError = error;
-      console.warn(`[nearby] Falha em ${endpoint}:`, error);
     }
   }
   if (elements === null) {
@@ -765,18 +818,22 @@ export async function fetchNearbyPlaces(
     const lon = el.lon ?? el.center?.lon;
     if (!name || lat == null || lon == null) continue;
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-    const dedupe = `${normalize(name)}|${lat.toFixed(4)},${lon.toFixed(4)}`;
-    if (seen.has(dedupe)) continue;
-    seen.add(dedupe);
+    // Deduplicação por osm_id (tipo + id).
+    const osmId = `${el.type}${el.id}`;
+    if (seen.has(osmId)) continue;
+    seen.add(osmId);
+    const distanceKm = Math.min(
+      ...valid.map((c) => haversineKm(c, { latitude: lat, longitude: lon })),
+    );
     suggestions.push({
-      externalPlaceId: `osm:${el.type}${el.id}`,
+      externalPlaceId: `osm:${osmId}`,
       name,
       category: NEARBY_CATEGORY_TO_PLACE[category],
       categoryLabel: NEARBY_CATEGORY_LABELS[category],
       address: tagsToAddress(tags),
       latitude: lat,
       longitude: lon,
-      distanceKm: Number(haversineKm(center, { latitude: lat, longitude: lon }).toFixed(2)),
+      distanceKm: Number(distanceKm.toFixed(2)),
     });
   }
 
