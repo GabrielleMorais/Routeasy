@@ -27,8 +27,12 @@ export function TransportSelector({
             type="button"
             role="radio"
             aria-checked={selected}
-            variant={selected ? "default" : "outline"}
-            className="h-auto flex-col gap-2 py-4"
+            variant="outline"
+            className={
+              selected
+                ? "h-auto flex-col gap-2 border-2 border-selection-border bg-selection py-4 text-selection-foreground hover:bg-selection hover:text-selection-foreground [&_svg]:text-selection-icon"
+                : "h-auto flex-col gap-2 py-4 hover:bg-selection-hover hover:border-selection-hover-border"
+            }
             onClick={() => onChange(option)}
           >
             <Icon className="size-5" aria-hidden="true" />
