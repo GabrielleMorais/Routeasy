@@ -527,16 +527,64 @@ export function wazeNavigationUrl(destination: LatLng): string {
   return `https://waze.com/ul?ll=${destination.latitude}%2C${destination.longitude}&navigate=yes`;
 }
 
-/** Deep link do Moovit (transporte público); envia origem quando disponível. */
-export function moovitDirectionsUrl(destination: LatLng, origin?: LatLng, destName?: string): string {
-  const params = new URLSearchParams({
-    customerId: "4908",
-    tll: `${destination.latitude}_${destination.longitude}`,
-  });
-  if (destName) params.set("to", destName);
-  if (origin) params.set("fll", `${origin.latitude}_${origin.longitude}`);
-  return `https://moovitapp.com/index/pt-br/transporte_p%C3%BAblico-poi?${params.toString()}`;
+/** Deep link oficial do app Moovit para um trecho com origem e destino reais. */
+export function moovitAppUrl(
+  origin: LatLng,
+  destination: LatLng,
+  originName: string,
+  destinationName: string,
+): string {
+  return (
+    `moovit://directions?dest_lat=${destination.latitude}&dest_lon=${destination.longitude}` +
+    `&dest_name=${encodeURIComponent(destinationName)}` +
+    `&orig_lat=${origin.latitude}&orig_lon=${origin.longitude}` +
+    `&orig_name=${encodeURIComponent(originName)}` +
+    `&auto_run=true&partner_id=Routeasy`
+  );
 }
+
+/** Alternativa web oficial do Moovit (usada no desktop e quando o app não abre). */
+export function moovitWebUrl(destination: LatLng, destinationName: string): string {
+  return (
+    `https://www.moovit.com/?lang=pt-br&to=${encodeURIComponent(destinationName)}` +
+    `&tll=${destination.latitude}_${destination.longitude}`
+  );
+}
+
+/** Coordenadas válidas para gerar um trecho do Moovit. */
+export function hasValidLeg(origin?: LatLng, destination?: LatLng): boolean {
+  return !!origin && !!destination && isValidCoord(origin) && isValidCoord(destination);
+}
+
+/**
+ * Abre o trajeto no Moovit: no celular tenta o app e cai para a web se ele não
+ * abrir; no desktop abre direto a web. Nunca abre os dois ao mesmo tempo.
+ */
+export function openMoovitRoute(
+  origin: LatLng,
+  destination: LatLng,
+  originName: string,
+  destinationName: string,
+): void {
+  if (typeof window === "undefined" || !hasValidLeg(origin, destination)) return;
+  const web = moovitWebUrl(destination, destinationName);
+  const isMobile = /android|iphone|ipad|ipod/i.test(window.navigator.userAgent);
+  if (!isMobile) {
+    window.open(web, "_blank", "noopener,noreferrer");
+    return;
+  }
+  let left = false;
+  const onVisibility = () => {
+    if (document.hidden) left = true;
+  };
+  document.addEventListener("visibilitychange", onVisibility);
+  window.location.href = moovitAppUrl(origin, destination, originName, destinationName);
+  window.setTimeout(() => {
+    document.removeEventListener("visibilitychange", onVisibility);
+    if (!left && !document.hidden) window.open(web, "_blank", "noopener,noreferrer");
+  }, 1500);
+}
+
 
 /* -------------------------------------------------------------------------- */
 /* Sugestões de lugares próximos (Overpass API / OpenStreetMap)                 */
