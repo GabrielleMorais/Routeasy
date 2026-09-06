@@ -70,7 +70,7 @@ function ComoFunciona() {
           ))}
         </div>
 
-        <Accordion type="single" collapsible className="rounded-2xl border border-border bg-card px-4">
+        <Accordion type="single" collapsible className="rounded-xl border border-border bg-card px-4">
           <AccordionItem value="conta">
             <AccordionTrigger>Preciso criar uma conta?</AccordionTrigger>
             <AccordionContent>
