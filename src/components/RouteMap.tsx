@@ -35,6 +35,7 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
   const [mounted, setMounted] = useState(false);
   const [routes, setRoutes] = useState<MapRoute[]>([]);
   const [realTotals, setRealTotals] = useState<Record<string, { km: number; min: number }>>({});
+  const [loadingRoutes, setLoadingRoutes] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -81,6 +82,7 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      setLoadingRoutes(true);
       const result: MapRoute[] = [];
       const totals: Record<string, { km: number; min: number }> = {};
       for (const { day, stops: dayStops } of perDay) {
@@ -104,6 +106,7 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
       if (!cancelled) {
         setRoutes(result);
         setRealTotals(totals);
+        setLoadingRoutes(false);
       }
     }
     void load();
@@ -153,6 +156,11 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
       <div className="flex flex-wrap items-center gap-2">
         {visibleDays.map((day) => {
           const real = realTotals[day.id];
+          // Quando o dia ainda não tem totais próprios (ex.: prévia na criação),
+          // usa os totais reais calculados pelo OSRM.
+          const km = day.totalDistance > 0 ? day.totalDistance : (real?.km ?? 0);
+          const min = day.totalDistance > 0 ? day.totalTravelMinutes : (real?.min ?? 0);
+          const hasValue = km > 0;
           return (
             <Badge key={day.id} variant="outline" className="gap-2">
               <span
@@ -160,10 +168,14 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
                 style={{ backgroundColor: DAY_COLORS[(day.dayNumber - 1) % DAY_COLORS.length] }}
                 aria-hidden="true"
               />
-              {/* Totais idênticos aos da timeline (somatório dos deslocamentos do dia). */}
-              Dia {day.dayNumber} · {day.totalDistance} km ·{" "}
-              {formatMinutes(day.totalTravelMinutes)}
-              {real ? " (rota real)" : ""}
+              {loadingRoutes && !hasValue ? (
+                <>Dia {day.dayNumber} · Calculando rota...</>
+              ) : (
+                <>
+                  Dia {day.dayNumber} · {km.toFixed(1)} km · {formatMinutes(min)}
+                  {real && real.km > 0 ? " (rota real)" : ""}
+                </>
+              )}
             </Badge>
           );
         })}

@@ -694,6 +694,7 @@ function CreateTripStepper() {
         }}
         place={editing}
         onSave={savePlace}
+        destination={trip.destination}
       />
     </div>
   );

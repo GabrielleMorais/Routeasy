@@ -48,10 +48,12 @@ interface Props {
   place?: Place | undefined;
   /** Retorne `false` para manter o diálogo aberto (ex.: lugar duplicado). */
   onSave: (place: Place) => boolean | void;
+  /** Cidade/destino da viagem: prioriza resultados da busca nessa região. */
+  destination?: string | undefined;
 }
 
 
-export function PlaceFormDialog({ open, onOpenChange, place, onSave }: Props) {
+export function PlaceFormDialog({ open, onOpenChange, place, onSave, destination }: Props) {
   const [tab, setTab] = useState(place ? "detalhes" : "buscar");
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [externalId, setExternalId] = useState<string | undefined>(undefined);
@@ -154,7 +156,7 @@ export function PlaceFormDialog({ open, onOpenChange, place, onSave }: Props) {
 
           {!place ? (
             <TabsContent value="buscar" className="pt-4">
-              <PlaceSearch onSelect={applySearchResult} />
+              <PlaceSearch onSelect={applySearchResult} destination={destination} />
               <Button variant="outline" className="mt-4 w-full" onClick={() => setTab("detalhes")}>
                 Adicionar endereço manualmente
               </Button>
