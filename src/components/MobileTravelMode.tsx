@@ -26,10 +26,8 @@ export function MobileTravelMode({ trip, day, onUpdateStatus }: Props) {
   };
   // Origem do trecho atual: o lugar anterior no roteiro (ou a hospedagem no primeiro trecho).
   const nextIndex = next ? stops.indexOf(next) : -1;
-  const prevPlace =
-    nextIndex > 0 && stops[nextIndex - 1]?.placeId
-      ? trip.places.find((p) => p.id === stops[nextIndex - 1].placeId)
-      : undefined;
+  const prevStopId = nextIndex > 0 ? stops[nextIndex - 1]?.placeId : undefined;
+  const prevPlace = prevStopId ? trip.places.find((p) => p.id === prevStopId) : undefined;
   const legOrigin = prevPlace ?? accommodation;
   const legOriginName = prevPlace?.name ?? (trip.accommodationName || "Ponto de partida");
   const now = new Date();
