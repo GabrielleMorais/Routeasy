@@ -162,6 +162,7 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
         endTime: toTime(cursor + leg.durationMinutes),
         travelMinutes: leg.durationMinutes,
         travelDistance: leg.distanceKm,
+        travelSource: leg.isMock ? "estimate" : "osrm",
         transportMode: trip.transportMode,
         status: "pendente",
         warning:
@@ -268,6 +269,7 @@ export function optimizeTrip(trip: Trip): OptimizationResult {
         endTime: toTime(cursor + leg.durationMinutes),
         travelMinutes: leg.durationMinutes,
         travelDistance: leg.distanceKm,
+        travelSource: leg.isMock ? "estimate" : "osrm",
         transportMode: trip.transportMode,
         status: "pendente",
         address: trip.accommodationAddress,
@@ -342,6 +344,7 @@ export function recalculateDay(trip: Trip, day: ItineraryDay): ItineraryDay {
         endTime: toTime(cursor + leg.durationMinutes),
         travelMinutes: leg.durationMinutes,
         travelDistance: leg.distanceKm,
+        travelSource: leg.isMock ? "estimate" : "osrm",
         transportMode: trip.transportMode,
         status: "pendente",
         warning:
