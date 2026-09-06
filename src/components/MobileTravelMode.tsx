@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { moovitDirectionsUrl, wazeNavigationUrl } from "@/services/maps";
+import { hasValidLeg, openMoovitRoute, wazeNavigationUrl } from "@/services/maps";
 import type { ItineraryDay, ItineraryItem, Trip } from "@/types/trip";
 
 interface Props {
@@ -78,16 +78,21 @@ export function MobileTravelMode({ trip, day, onUpdateStatus }: Props) {
                     </a>
                   </Button>
                 ) : null}
-                {nextPlace && trip.transportMode === "transporte_publico" ? (
-                  <Button asChild>
-                    <a
-                      href={moovitDirectionsUrl(nextPlace, accommodation, nextPlace.name)}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                    >
-                      <ExternalLink className="size-4" aria-hidden="true" />
-                      Ver rota no Moovit
-                    </a>
+                {nextPlace &&
+                trip.transportMode === "transporte_publico" &&
+                hasValidLeg(accommodation, nextPlace) ? (
+                  <Button
+                    onClick={() =>
+                      openMoovitRoute(
+                        accommodation,
+                        nextPlace,
+                        trip.accommodationName || "Ponto de partida",
+                        nextPlace.name,
+                      )
+                    }
+                  >
+                    <ExternalLink className="size-4" aria-hidden="true" />
+                    Abrir trajeto no Moovit
                   </Button>
                 ) : null}
                 <Button asChild variant="secondary">

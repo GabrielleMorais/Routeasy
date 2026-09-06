@@ -527,16 +527,64 @@ export function wazeNavigationUrl(destination: LatLng): string {
   return `https://waze.com/ul?ll=${destination.latitude}%2C${destination.longitude}&navigate=yes`;
 }
 
-/** Deep link do Moovit (transporte público); envia origem quando disponível. */
-export function moovitDirectionsUrl(destination: LatLng, origin?: LatLng, destName?: string): string {
-  const params = new URLSearchParams({
-    customerId: "4908",
-    tll: `${destination.latitude}_${destination.longitude}`,
-  });
-  if (destName) params.set("to", destName);
-  if (origin) params.set("fll", `${origin.latitude}_${origin.longitude}`);
-  return `https://moovitapp.com/index/pt-br/transporte_p%C3%BAblico-poi?${params.toString()}`;
+/** Deep link oficial do app Moovit para um trecho com origem e destino reais. */
+export function moovitAppUrl(
+  origin: LatLng,
+  destination: LatLng,
+  originName: string,
+  destinationName: string,
+): string {
+  return (
+    `moovit://directions?dest_lat=${destination.latitude}&dest_lon=${destination.longitude}` +
+    `&dest_name=${encodeURIComponent(destinationName)}` +
+    `&orig_lat=${origin.latitude}&orig_lon=${origin.longitude}` +
+    `&orig_name=${encodeURIComponent(originName)}` +
+    `&auto_run=true&partner_id=Routeasy`
+  );
 }
+
+/** Alternativa web oficial do Moovit (usada no desktop e quando o app não abre). */
+export function moovitWebUrl(destination: LatLng, destinationName: string): string {
+  return (
+    `https://www.moovit.com/?lang=pt-br&to=${encodeURIComponent(destinationName)}` +
+    `&tll=${destination.latitude}_${destination.longitude}`
+  );
+}
+
+/** Coordenadas válidas para gerar um trecho do Moovit. */
+export function hasValidLeg(origin?: LatLng, destination?: LatLng): boolean {
+  return !!origin && !!destination && isValidCoord(origin) && isValidCoord(destination);
+}
+
+/**
+ * Abre o trajeto no Moovit: no celular tenta o app e cai para a web se ele não
+ * abrir; no desktop abre direto a web. Nunca abre os dois ao mesmo tempo.
+ */
+export function openMoovitRoute(
+  origin: LatLng,
+  destination: LatLng,
+  originName: string,
+  destinationName: string,
+): void {
+  if (typeof window === "undefined" || !hasValidLeg(origin, destination)) return;
+  const web = moovitWebUrl(destination, destinationName);
+  const isMobile = /android|iphone|ipad|ipod/i.test(window.navigator.userAgent);
+  if (!isMobile) {
+    window.open(web, "_blank", "noopener,noreferrer");
+    return;
+  }
+  let left = false;
+  const onVisibility = () => {
+    if (document.hidden) left = true;
+  };
+  document.addEventListener("visibilitychange", onVisibility);
+  window.location.href = moovitAppUrl(origin, destination, originName, destinationName);
+  window.setTimeout(() => {
+    document.removeEventListener("visibilitychange", onVisibility);
+    if (!left && !document.hidden) window.open(web, "_blank", "noopener,noreferrer");
+  }, 1500);
+}
+
 
 /* -------------------------------------------------------------------------- */
 /* Sugestões de lugares próximos (Overpass API / OpenStreetMap)                 */
@@ -557,7 +605,6 @@ export const NEARBY_CATEGORY_LABELS: Record<NearbyCategory, string> = {
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
-  "https://overpass.nchc.org.tw/api/interpreter",
 ];
 
 const OVERPASS_FILTERS: Record<NearbyCategory, string[]> = {
@@ -607,8 +654,26 @@ function tagsToAddress(tags: Record<string, string>): string {
   return parts.join(" — ");
 }
 
-/** Tempo máximo de espera por servidor Overpass (~12s). */
-const OVERPASS_TIMEOUT_MS = 12_000;
+/** Tempo máximo de espera por servidor Overpass (8s). */
+const OVERPASS_TIMEOUT_MS = 8_000;
+
+/** Cache das sugestões por categoria + coordenada, válido por 10 minutos. */
+const NEARBY_TTL_MS = 10 * 60 * 1000;
+const nearbyCache = new Map<string, { expiresAt: number; value: NearbySuggestion[] }>();
+
+function nearbyCacheGet(key: string): NearbySuggestion[] | undefined {
+  const entry = nearbyCache.get(key);
+  if (!entry) return undefined;
+  if (entry.expiresAt < Date.now()) {
+    nearbyCache.delete(key);
+    return undefined;
+  }
+  return entry.value;
+}
+
+function nearbyCacheSet(key: string, value: NearbySuggestion[]) {
+  nearbyCache.set(key, { expiresAt: Date.now() + NEARBY_TTL_MS, value });
+}
 
 function isValidCoord(c: LatLng): boolean {
   return (
@@ -657,20 +722,20 @@ async function queryOverpass(
 export async function fetchNearbyPlaces(
   center: LatLng,
   category: NearbyCategory,
-  radiusMeters = 3000,
+  radiusMeters = 2500,
   signal?: AbortSignal,
 ): Promise<NearbySuggestion[]> {
   if (!isValidCoord(center)) {
     throw new Error("Ponto de partida sem coordenadas válidas. Confirme o endereço da hospedagem.");
   }
   const key = `nearby:${category}:${coordKey(center)}:${radiusMeters}`;
-  const cached = cacheGet<NearbySuggestion[]>(key);
+  const cached = nearbyCacheGet(key);
   if (cached) return cached;
 
   const around = `(around:${radiusMeters},${center.latitude},${center.longitude})`;
-  const body = `[out:json][timeout:10];(${OVERPASS_FILTERS[category]
+  const body = `[out:json][timeout:8];(${OVERPASS_FILTERS[category]
     .map((f) => `node${f}${around};way${f}${around};`)
-    .join("")});out center 60;`;
+    .join("")});out tags center 40;`;
 
   let elements: OverpassElement[] | null = null;
   let lastError: unknown = null;
@@ -700,7 +765,8 @@ export async function fetchNearbyPlaces(
     const lat = el.lat ?? el.center?.lat;
     const lon = el.lon ?? el.center?.lon;
     if (!name || lat == null || lon == null) continue;
-    const dedupe = normalize(name);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    const dedupe = `${normalize(name)}|${lat.toFixed(4)},${lon.toFixed(4)}`;
     if (seen.has(dedupe)) continue;
     seen.add(dedupe);
     suggestions.push({
@@ -715,7 +781,7 @@ export async function fetchNearbyPlaces(
     });
   }
 
-  const top = suggestions.sort((a, b) => a.distanceKm - b.distanceKm).slice(0, 10);
-  cacheSet(key, top);
+  const top = suggestions.sort((a, b) => a.distanceKm - b.distanceKm).slice(0, 8);
+  nearbyCacheSet(key, top);
   return top;
 }
