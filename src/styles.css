@@ -153,11 +153,11 @@
   --info-foreground: oklch(0.985 0.004 90);
   --visit: oklch(0.2426 0.0501 261.4);
   --travel: oklch(0.5492 0.0273 260.5);
-  --meal: oklch(0.6091 0.1467 37.7);
+  --meal: oklch(0.4316 0.0558 258.9);
   --free: oklch(0.5026 0.0831 161.2);
   --alert: oklch(0.62 0.13 75);
   --chart-1: oklch(0.2426 0.0501 261.4);
-  --chart-2: oklch(0.6091 0.1467 37.7);
+  --chart-2: oklch(0.4811 0.0612 260.1);
   --chart-3: oklch(0.4548 0.0795 257.4);
   --chart-4: oklch(0.5026 0.0831 161.2);
   --chart-5: oklch(0.62 0.13 75);
@@ -181,25 +181,34 @@
   --card-foreground: oklch(0.9607 0.0092 91.2);
   --popover: oklch(0.2523 0.0353 258.9);
   --popover-foreground: oklch(0.9607 0.0092 91.2);
-  /* destaque #E47B5B em botões principais no escuro */
-  --primary: oklch(0.6709 0.1415 38.3);
-  --primary-hover: oklch(0.722 0.135 38.3);
-  --primary-foreground: oklch(0.2073 0.0296 258.3);
+  /* botão principal claro sobre fundo escuro */
+  --primary: oklch(0.9455 0.0132 256.8);
+  --primary-hover: oklch(0.985 0.004 90);
+  --primary-foreground: oklch(0.2426 0.0501 261.4);
   --secondary: oklch(0.3049 0.0348 256.9);
   --secondary-foreground: oklch(0.9607 0.0092 91.2);
   --muted: oklch(0.2875 0.0335 257.4);
   /* #B4BCC9 */
   --muted-foreground: oklch(0.7816 0.0195 251.6);
-  --accent: oklch(0.6709 0.1415 38.3);
-  --accent-foreground: oklch(0.2073 0.0296 258.3);
+  /* seleção em azul escuro discreto */
+  --accent: oklch(0.3153 0.0405 258.5);
+  --accent-foreground: oklch(0.9455 0.0132 256.8);
   --destructive: oklch(0.6088 0.1447 23.5);
   --destructive-foreground: oklch(0.9607 0.0092 91.2);
   /* #344054 */
   --border: oklch(0.3654 0.0356 256.6);
   --input: oklch(0.3654 0.0356 256.6);
-  --ring: oklch(0.722 0.135 38.3);
-  --coral: oklch(0.6709 0.1415 38.3);
-  --coral-foreground: oklch(0.2073 0.0296 258.3);
+  --ring: oklch(0.6521 0.0541 257.8);
+  --coral: oklch(0.3153 0.0405 258.5);
+  --coral-foreground: oklch(0.8102 0.0395 253.9);
+  /* padrão de seleção azul escuro discreto */
+  --selection: oklch(0.3153 0.0405 258.5);
+  --selection-foreground: oklch(0.9455 0.0132 256.8);
+  --selection-border: oklch(0.5614 0.0604 258.2);
+  --selection-icon: oklch(0.8102 0.0395 253.9);
+  --selection-subtle: oklch(0.7816 0.0195 251.6);
+  --selection-hover: oklch(0.2836 0.0362 257.7);
+  --selection-hover-border: oklch(0.4562 0.0456 257.2);
   --sky: oklch(0.3049 0.0348 256.9);
   --petrol: oklch(0.3049 0.0348 256.9);
   --petrol-foreground: oklch(0.9607 0.0092 91.2);
