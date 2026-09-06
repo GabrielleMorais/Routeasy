@@ -142,7 +142,9 @@ export function ItineraryTimeline({
                   {item.itemType === "deslocamento" && item.travelMinutes ? (
                     <p className="text-sm text-muted-foreground">
                       {formatMinutes(item.travelMinutes)} · {item.travelDistance} km ·{" "}
-                      {item.transportMode ? transportLabels[item.transportMode] : ""} (estimativa)
+                      {item.transportMode ? transportLabels[item.transportMode] : ""}{" "}
+                      {item.travelSource === "osrm" ? "(rota real)" : "(estimativa)"}
+
                     </p>
                   ) : null}
                   {item.itemType === "deslocamento"
