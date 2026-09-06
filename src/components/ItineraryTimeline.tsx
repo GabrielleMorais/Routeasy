@@ -19,10 +19,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { categoryLabels, formatMinutes, transportLabels } from "@/lib/labels";
+import { MoovitLegButtons } from "@/components/MoovitLegButtons";
 import {
   googleMapsDirectionsUrl,
   hasValidLeg,
-  openMoovitRoute,
   wazeNavigationUrl,
   type LatLng,
 } from "@/services/maps";
@@ -175,14 +175,13 @@ export function ItineraryTimeline({
                             {item.transportMode === "transporte_publico" &&
                             from &&
                             hasValidLeg(from, to) ? (
-                              <Button
+                              <MoovitLegButtons
                                 size="sm"
-                                variant="outline"
-                                onClick={() => openMoovitRoute(from, to, fromName, to.name)}
-                              >
-                                <Bus className="size-3.5" aria-hidden="true" />
-                                Abrir trajeto no Moovit
-                              </Button>
+                                origin={from}
+                                originName={fromName}
+                                destination={to}
+                                destinationName={to.name}
+                              />
                             ) : null}
                           </div>
                         );

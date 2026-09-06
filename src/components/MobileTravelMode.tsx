@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { hasValidLeg, openMoovitRoute, wazeNavigationUrl } from "@/services/maps";
+import { hasValidLeg, wazeNavigationUrl } from "@/services/maps";
+import { MoovitLegButtons } from "@/components/MoovitLegButtons";
 import type { ItineraryDay, ItineraryItem, Trip } from "@/types/trip";
 
 interface Props {
@@ -23,6 +24,12 @@ export function MobileTravelMode({ trip, day, onUpdateStatus }: Props) {
     latitude: trip.accommodationLatitude,
     longitude: trip.accommodationLongitude,
   };
+  // Origem do trecho atual: o lugar anterior no roteiro (ou a hospedagem no primeiro trecho).
+  const nextIndex = next ? stops.indexOf(next) : -1;
+  const prevStopId = nextIndex > 0 ? stops[nextIndex - 1]?.placeId : undefined;
+  const prevPlace = prevStopId ? trip.places.find((p) => p.id === prevStopId) : undefined;
+  const legOrigin = prevPlace ?? accommodation;
+  const legOriginName = prevPlace?.name ?? (trip.accommodationName || "Ponto de partida");
   const now = new Date();
   const late =
     next && `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}` > next.endTime;
@@ -80,20 +87,13 @@ export function MobileTravelMode({ trip, day, onUpdateStatus }: Props) {
                 ) : null}
                 {nextPlace &&
                 trip.transportMode === "transporte_publico" &&
-                hasValidLeg(accommodation, nextPlace) ? (
-                  <Button
-                    onClick={() =>
-                      openMoovitRoute(
-                        accommodation,
-                        nextPlace,
-                        trip.accommodationName || "Ponto de partida",
-                        nextPlace.name,
-                      )
-                    }
-                  >
-                    <ExternalLink className="size-4" aria-hidden="true" />
-                    Abrir trajeto no Moovit
-                  </Button>
+                hasValidLeg(legOrigin, nextPlace) ? (
+                  <MoovitLegButtons
+                    origin={legOrigin}
+                    originName={legOriginName}
+                    destination={nextPlace}
+                    destinationName={nextPlace.name}
+                  />
                 ) : null}
                 <Button asChild variant="secondary">
                   <a

@@ -527,62 +527,61 @@ export function wazeNavigationUrl(destination: LatLng): string {
   return `https://waze.com/ul?ll=${destination.latitude}%2C${destination.longitude}&navigate=yes`;
 }
 
-/** Deep link oficial do app Moovit para um trecho com origem e destino reais. */
-export function moovitAppUrl(
-  origin: LatLng,
-  destination: LatLng,
-  originName: string,
-  destinationName: string,
-): string {
-  return (
-    `moovit://directions?dest_lat=${destination.latitude}&dest_lon=${destination.longitude}` +
-    `&dest_name=${encodeURIComponent(destinationName)}` +
-    `&orig_lat=${origin.latitude}&orig_lon=${origin.longitude}` +
-    `&orig_name=${encodeURIComponent(originName)}` +
-    `&auto_run=true&partner_id=Routeasy`
-  );
-}
-
-/** Alternativa web oficial do Moovit (usada no desktop e quando o app não abre). */
-export function moovitWebUrl(destination: LatLng, destinationName: string): string {
-  return (
-    `https://www.moovit.com/?lang=pt-br&to=${encodeURIComponent(destinationName)}` +
-    `&tll=${destination.latitude}_${destination.longitude}`
-  );
-}
-
 /** Coordenadas válidas para gerar um trecho do Moovit. */
 export function hasValidLeg(origin?: LatLng, destination?: LatLng): boolean {
   return !!origin && !!destination && isValidCoord(origin) && isValidCoord(destination);
 }
 
-/**
- * Abre o trajeto no Moovit: no celular tenta o app e cai para a web se ele não
- * abrir; no desktop abre direto a web. Nunca abre os dois ao mesmo tempo.
- */
-export function openMoovitRoute(
-  origin: LatLng,
-  destination: LatLng,
-  originName: string,
-  destinationName: string,
-): void {
-  if (typeof window === "undefined" || !hasValidLeg(origin, destination)) return;
-  const web = moovitWebUrl(destination, destinationName);
-  const isMobile = /android|iphone|ipad|ipod/i.test(window.navigator.userAgent);
-  if (!isMobile) {
-    window.open(web, "_blank", "noopener,noreferrer");
-    return;
-  }
-  let left = false;
-  const onVisibility = () => {
-    if (document.hidden) left = true;
-  };
-  document.addEventListener("visibilitychange", onVisibility);
-  window.location.href = moovitAppUrl(origin, destination, originName, destinationName);
-  window.setTimeout(() => {
-    document.removeEventListener("visibilitychange", onVisibility);
-    if (!left && !document.hidden) window.open(web, "_blank", "noopener,noreferrer");
-  }, 1500);
+export interface MoovitLeg {
+  originLat: number;
+  originLon: number;
+  originName: string;
+  destinationLat: number;
+  destinationLon: number;
+  destinationName: string;
+}
+
+/** Valida um trecho: coordenadas numéricas nos limites corretos e nomes preenchidos. */
+export function isValidMoovitLeg(leg: MoovitLeg): boolean {
+  const { originLat, originLon, destinationLat, destinationLon, originName, destinationName } = leg;
+  const coords = [originLat, originLon, destinationLat, destinationLon];
+  if (coords.some((v) => typeof v !== "number" || Number.isNaN(v))) return false;
+  if (originLat < -90 || originLat > 90 || destinationLat < -90 || destinationLat > 90) return false;
+  if (originLon < -180 || originLon > 180 || destinationLon < -180 || destinationLon > 180)
+    return false;
+  if (!originName?.trim() || !destinationName?.trim()) return false;
+  return true;
+}
+
+/** Deep link oficial do app Moovit para um trecho com origem e destino reais. */
+export function createMoovitDeepLink(leg: MoovitLeg): string {
+  const params = new URLSearchParams({
+    orig_lat: String(leg.originLat),
+    orig_lon: String(leg.originLon),
+    orig_name: leg.originName,
+    dest_lat: String(leg.destinationLat),
+    dest_lon: String(leg.destinationLon),
+    dest_name: leg.destinationName,
+    auto_run: "true",
+    partner_id: "Routeasy",
+  });
+  return `moovit://directions?${params.toString()}`;
+}
+
+/** Alternativa web oficial do Moovit (usada no desktop e quando o app não abre). */
+export function createMoovitWebLink(leg: MoovitLeg): string {
+  const params = new URLSearchParams({
+    lang: "pt-br",
+    to: leg.destinationName,
+    tll: `${leg.destinationLat}_${leg.destinationLon}`,
+  });
+  return `https://www.moovit.com/?${params.toString()}`;
+}
+
+/** Detecta celular/tablet para escolher entre deeplink do app e versão web. */
+export function isMobileDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  return /android|iphone|ipad|ipod/i.test(window.navigator.userAgent);
 }
 
 
