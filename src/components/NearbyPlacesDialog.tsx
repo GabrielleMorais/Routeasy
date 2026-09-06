@@ -144,7 +144,15 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" disabled={!hasReferences}>
+        <Button
+          variant="outline"
+          disabled={!hasReferences}
+          title={
+            hasReferences
+              ? "Sugestões próximas aos primeiros lugares do seu roteiro"
+              : "Adicione pelo menos um lugar ao roteiro para ver sugestões próximas."
+          }
+        >
           <Compass className="size-4" aria-hidden="true" />
           Ver lugares próximos
         </Button>
