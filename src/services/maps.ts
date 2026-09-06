@@ -87,6 +87,36 @@ function normalize(value: string) {
     .toLowerCase();
 }
 
+/** Siglas de UF para comparar com o nome completo retornado pelo Nominatim. */
+const UF_NAMES: Record<string, string> = {
+  ac: "acre", al: "alagoas", ap: "amapa", am: "amazonas", ba: "bahia", ce: "ceara",
+  df: "distrito federal", es: "espirito santo", go: "goias", ma: "maranhao",
+  mt: "mato grosso", ms: "mato grosso do sul", mg: "minas gerais", pa: "para",
+  pb: "paraiba", pr: "parana", pe: "pernambuco", pi: "piaui", rj: "rio de janeiro",
+  rn: "rio grande do norte", rs: "rio grande do sul", ro: "rondonia", rr: "roraima",
+  sc: "santa catarina", sp: "sao paulo", se: "sergipe", to: "tocantins",
+};
+
+/**
+ * Reordena resultados priorizando a cidade/UF do destino da viagem
+ * (ex.: "São Paulo, SP"). Resultados de fora não são escondidos, apenas vão depois.
+ */
+export function prioritizeByDestination(results: GeoResult[], destination?: string): GeoResult[] {
+  const parts = (destination ?? "").split(",").map((p) => normalize(p.trim())).filter(Boolean);
+  if (parts.length === 0 || results.length === 0) return results;
+  const city = parts[0]!;
+  const uf = parts[1]?.length === 2 ? UF_NAMES[parts[1]] : parts[1];
+
+  function score(r: GeoResult): number {
+    const resultCity = normalize(r.city ?? "");
+    const resultState = normalize(r.state ?? "");
+    if (resultCity && (resultCity === city || resultCity.includes(city) || city.includes(resultCity))) return 0;
+    if (uf && resultState && (resultState === uf || resultState.includes(uf))) return 1;
+    return 2;
+  }
+  return [...results].sort((a, b) => score(a) - score(b));
+}
+
 /** Gera coordenadas determinísticas próximas ao centro simulado, para endereços livres. */
 function pseudoCoords(seed: string): LatLng {
   let hash = 0;

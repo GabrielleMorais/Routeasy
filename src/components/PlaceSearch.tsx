@@ -7,9 +7,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { categoryLabels } from "@/lib/labels";
-import { searchPlaces, usesOpenStreetMap, type GeoResult } from "@/services/maps";
+import { prioritizeByDestination, searchPlaces, usesOpenStreetMap, type GeoResult } from "@/services/maps";
 
-export function PlaceSearch({ onSelect }: { onSelect: (result: GeoResult) => void }) {
+interface Props {
+  onSelect: (result: GeoResult) => void;
+  /** Cidade/destino da viagem: prioriza resultados da mesma cidade/UF. */
+  destination?: string | undefined;
+}
+
+export function PlaceSearch({ onSelect, destination }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeoResult[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -24,8 +30,8 @@ export function PlaceSearch({ onSelect }: { onSelect: (result: GeoResult) => voi
     setLoading(true);
     setError(null);
     try {
-      const found = await searchPlaces(term, controller.signal);
-      if (!controller.signal.aborted) setResults(found);
+      const found = await searchPlaces(term, controller.signal, { near: destination });
+      if (!controller.signal.aborted) setResults(prioritizeByDestination(found, destination));
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Não foi possível buscar lugares agora.");
@@ -105,25 +111,29 @@ export function PlaceSearch({ onSelect }: { onSelect: (result: GeoResult) => voi
       ) : null}
 
       <ul className="space-y-2">
-        {(results ?? []).map((result) => (
-          <li key={result.externalPlaceId}>
-            <button
-              type="button"
-              onClick={() => onSelect(result)}
-              className="w-full rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-accent focus-visible:bg-accent"
-            >
-              <span className="flex flex-wrap items-center gap-2 font-medium">
-                {result.name}
-                <Badge variant="outline">{categoryLabels[result.category]}</Badge>
-                {result.isMock ? <Badge variant="secondary">Dados de demonstração</Badge> : null}
-              </span>
-              <span className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
-                <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                {result.address}
-              </span>
-            </button>
-          </li>
-        ))}
+        {(results ?? []).map((result) => {
+          const location = [result.city, result.state].filter(Boolean).join(" — ");
+          return (
+            <li key={result.externalPlaceId}>
+              <button
+                type="button"
+                onClick={() => onSelect(result)}
+                className="w-full rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-accent focus-visible:bg-accent"
+              >
+                <span className="flex flex-wrap items-center gap-2 font-medium">
+                  {result.name}
+                  <Badge variant="outline">{categoryLabels[result.category]}</Badge>
+                  {location ? <Badge variant="secondary">{location}</Badge> : null}
+                  {result.isMock ? <Badge variant="secondary">Dados de demonstração</Badge> : null}
+                </span>
+                <span className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
+                  <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                  {result.address}
+                </span>
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
