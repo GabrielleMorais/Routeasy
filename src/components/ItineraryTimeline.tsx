@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { categoryLabels, formatMinutes, transportLabels } from "@/lib/labels";
+import { MoovitLegButtons } from "@/components/MoovitLegButtons";
 import {
   googleMapsDirectionsUrl,
   hasValidLeg,

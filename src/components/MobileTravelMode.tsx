@@ -81,20 +81,13 @@ export function MobileTravelMode({ trip, day, onUpdateStatus }: Props) {
                 ) : null}
                 {nextPlace &&
                 trip.transportMode === "transporte_publico" &&
-                hasValidLeg(accommodation, nextPlace) ? (
-                  <Button
-                    onClick={() =>
-                      openMoovitRoute(
-                        accommodation,
-                        nextPlace,
-                        trip.accommodationName || "Ponto de partida",
-                        nextPlace.name,
-                      )
-                    }
-                  >
-                    <ExternalLink className="size-4" aria-hidden="true" />
-                    Abrir trajeto no Moovit
-                  </Button>
+                hasValidLeg(legOrigin, nextPlace) ? (
+                  <MoovitLegButtons
+                    origin={legOrigin}
+                    originName={legOriginName}
+                    destination={nextPlace}
+                    destinationName={nextPlace.name}
+                  />
                 ) : null}
                 <Button asChild variant="secondary">
                   <a

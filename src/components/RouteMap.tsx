@@ -14,6 +14,7 @@ import {
   type LatLng,
 } from "@/services/maps";
 import { formatMinutes } from "@/lib/labels";
+import { MoovitLegButtons } from "@/components/MoovitLegButtons";
 import type { MapRoute, MapStop } from "@/components/LeafletMap";
 import type { ItineraryDay, Trip } from "@/types/trip";
 
