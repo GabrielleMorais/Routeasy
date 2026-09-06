@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { hasValidLeg, openMoovitRoute, wazeNavigationUrl } from "@/services/maps";
+import { hasValidLeg, wazeNavigationUrl } from "@/services/maps";
+import { MoovitLegButtons } from "@/components/MoovitLegButtons";
 import type { ItineraryDay, ItineraryItem, Trip } from "@/types/trip";
 
 interface Props {

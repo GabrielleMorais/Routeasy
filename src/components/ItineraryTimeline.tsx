@@ -22,7 +22,6 @@ import { categoryLabels, formatMinutes, transportLabels } from "@/lib/labels";
 import {
   googleMapsDirectionsUrl,
   hasValidLeg,
-  openMoovitRoute,
   wazeNavigationUrl,
   type LatLng,
 } from "@/services/maps";

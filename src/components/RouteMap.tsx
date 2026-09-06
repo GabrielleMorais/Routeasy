@@ -9,7 +9,6 @@ import {
   fetchRouteGeometry,
   googleMapsDirectionsUrl,
   hasValidLeg,
-  openMoovitRoute,
   usesOpenStreetMap,
   wazeNavigationUrl,
   type LatLng,
