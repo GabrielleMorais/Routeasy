@@ -198,20 +198,12 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
         {firstStop &&
         trip.transportMode === "transporte_publico" &&
         hasValidLeg(accommodation, firstStop) ? (
-          <Button
-            className="w-full"
-            onClick={() =>
-              openMoovitRoute(
-                accommodation,
-                firstStop,
-                trip.accommodationName || "Ponto de partida",
-                firstStop.name,
-              )
-            }
-          >
-            <ExternalLink className="size-4" aria-hidden="true" />
-            Abrir trajeto no Moovit
-          </Button>
+          <MoovitLegButtons
+            origin={accommodation}
+            originName={trip.accommodationName || "Ponto de partida"}
+            destination={firstStop}
+            destinationName={firstStop.name}
+          />
         ) : null}
         <Button
           variant={trip.transportMode === "a_pe" || trip.transportMode === "bicicleta" ? "default" : "outline"}

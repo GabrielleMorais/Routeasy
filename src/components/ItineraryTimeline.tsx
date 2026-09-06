@@ -174,14 +174,13 @@ export function ItineraryTimeline({
                             {item.transportMode === "transporte_publico" &&
                             from &&
                             hasValidLeg(from, to) ? (
-                              <Button
+                              <MoovitLegButtons
                                 size="sm"
-                                variant="outline"
-                                onClick={() => openMoovitRoute(from, to, fromName, to.name)}
-                              >
-                                <Bus className="size-3.5" aria-hidden="true" />
-                                Abrir trajeto no Moovit
-                              </Button>
+                                origin={from}
+                                originName={fromName}
+                                destination={to}
+                                destinationName={to.name}
+                              />
                             ) : null}
                           </div>
                         );
