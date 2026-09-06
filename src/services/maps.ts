@@ -605,7 +605,6 @@ export const NEARBY_CATEGORY_LABELS: Record<NearbyCategory, string> = {
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
-  "https://overpass.nchc.org.tw/api/interpreter",
 ];
 
 const OVERPASS_FILTERS: Record<NearbyCategory, string[]> = {
@@ -655,8 +654,26 @@ function tagsToAddress(tags: Record<string, string>): string {
   return parts.join(" — ");
 }
 
-/** Tempo máximo de espera por servidor Overpass (~12s). */
-const OVERPASS_TIMEOUT_MS = 12_000;
+/** Tempo máximo de espera por servidor Overpass (8s). */
+const OVERPASS_TIMEOUT_MS = 8_000;
+
+/** Cache das sugestões por categoria + coordenada, válido por 10 minutos. */
+const NEARBY_TTL_MS = 10 * 60 * 1000;
+const nearbyCache = new Map<string, { expiresAt: number; value: NearbySuggestion[] }>();
+
+function nearbyCacheGet(key: string): NearbySuggestion[] | undefined {
+  const entry = nearbyCache.get(key);
+  if (!entry) return undefined;
+  if (entry.expiresAt < Date.now()) {
+    nearbyCache.delete(key);
+    return undefined;
+  }
+  return entry.value;
+}
+
+function nearbyCacheSet(key: string, value: NearbySuggestion[]) {
+  nearbyCache.set(key, { expiresAt: Date.now() + NEARBY_TTL_MS, value });
+}
 
 function isValidCoord(c: LatLng): boolean {
   return (
@@ -705,20 +722,20 @@ async function queryOverpass(
 export async function fetchNearbyPlaces(
   center: LatLng,
   category: NearbyCategory,
-  radiusMeters = 3000,
+  radiusMeters = 2500,
   signal?: AbortSignal,
 ): Promise<NearbySuggestion[]> {
   if (!isValidCoord(center)) {
     throw new Error("Ponto de partida sem coordenadas válidas. Confirme o endereço da hospedagem.");
   }
   const key = `nearby:${category}:${coordKey(center)}:${radiusMeters}`;
-  const cached = cacheGet<NearbySuggestion[]>(key);
+  const cached = nearbyCacheGet(key);
   if (cached) return cached;
 
   const around = `(around:${radiusMeters},${center.latitude},${center.longitude})`;
-  const body = `[out:json][timeout:10];(${OVERPASS_FILTERS[category]
+  const body = `[out:json][timeout:8];(${OVERPASS_FILTERS[category]
     .map((f) => `node${f}${around};way${f}${around};`)
-    .join("")});out center 60;`;
+    .join("")});out center tags 40;`;
 
   let elements: OverpassElement[] | null = null;
   let lastError: unknown = null;
@@ -748,7 +765,8 @@ export async function fetchNearbyPlaces(
     const lat = el.lat ?? el.center?.lat;
     const lon = el.lon ?? el.center?.lon;
     if (!name || lat == null || lon == null) continue;
-    const dedupe = normalize(name);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    const dedupe = `${normalize(name)}|${lat.toFixed(4)},${lon.toFixed(4)}`;
     if (seen.has(dedupe)) continue;
     seen.add(dedupe);
     suggestions.push({
@@ -763,7 +781,7 @@ export async function fetchNearbyPlaces(
     });
   }
 
-  const top = suggestions.sort((a, b) => a.distanceKm - b.distanceKm).slice(0, 10);
-  cacheSet(key, top);
+  const top = suggestions.sort((a, b) => a.distanceKm - b.distanceKm).slice(0, 8);
+  nearbyCacheSet(key, top);
   return top;
 }
