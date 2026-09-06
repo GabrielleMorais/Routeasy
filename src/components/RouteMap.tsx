@@ -8,7 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchRouteGeometry,
   googleMapsDirectionsUrl,
-  moovitDirectionsUrl,
+  hasValidLeg,
+  openMoovitRoute,
   usesOpenStreetMap,
   wazeNavigationUrl,
   type LatLng,
@@ -195,16 +196,22 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
             </a>
           </Button>
         ) : null}
-        {firstStop && trip.transportMode === "transporte_publico" ? (
-          <Button className="w-full" asChild>
-            <a
-              href={moovitDirectionsUrl(firstStop, accommodation)}
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              <ExternalLink className="size-4" aria-hidden="true" />
-              Ver rota no Moovit
-            </a>
+        {firstStop &&
+        trip.transportMode === "transporte_publico" &&
+        hasValidLeg(accommodation, firstStop) ? (
+          <Button
+            className="w-full"
+            onClick={() =>
+              openMoovitRoute(
+                accommodation,
+                firstStop,
+                trip.accommodationName || "Ponto de partida",
+                firstStop.name,
+              )
+            }
+          >
+            <ExternalLink className="size-4" aria-hidden="true" />
+            Abrir trajeto no Moovit
           </Button>
         ) : null}
         <Button
