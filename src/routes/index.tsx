@@ -92,7 +92,7 @@ function ProductPreview() {
       aria-label="Exemplo visual de um roteiro criado no Routeasy"
     >
       {/* Mini mapa com rota e marcadores numerados */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-sky shadow-[var(--shadow-soft)]">
+      <div className="relative overflow-hidden rounded-xl border border-border bg-sky shadow-[var(--shadow-soft)]">
         <svg
           viewBox="0 0 480 300"
           className="block w-full"
@@ -145,7 +145,7 @@ function ProductPreview() {
       </div>
 
       {/* Cartão de itinerário sobreposto */}
-      <div className="relative z-10 -mt-10 ml-auto w-[88%] rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-lift)] sm:-mt-14">
+      <div className="relative z-10 -mt-10 ml-auto w-[88%] rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-lift)] sm:-mt-14">
         <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Roteiro do dia
         </p>
