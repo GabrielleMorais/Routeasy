@@ -6,12 +6,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  computeRouteMetrics,
   fetchRouteGeometry,
   googleMapsDirectionsUrl,
   hasValidLeg,
+  navigationApps,
   usesOpenStreetMap,
+  warmupRoutes,
   wazeNavigationUrl,
   type LatLng,
+  type RouteMetrics,
 } from "@/services/maps";
 import { formatMinutes } from "@/lib/labels";
 import { MoovitLegButtons } from "@/components/MoovitLegButtons";
@@ -21,6 +25,7 @@ import type { ItineraryDay, Trip } from "@/types/trip";
 const LeafletMap = lazy(() => import("@/components/LeafletMap"));
 
 const DAY_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+
 
 interface Props {
   trip: Trip;
@@ -35,7 +40,7 @@ interface Props {
 export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
   const [mounted, setMounted] = useState(false);
   const [routes, setRoutes] = useState<MapRoute[]>([]);
-  const [realTotals, setRealTotals] = useState<Record<string, { km: number; min: number }>>({});
+  const [metrics, setMetrics] = useState<Record<string, RouteMetrics>>({});
   const [loadingRoutes, setLoadingRoutes] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -79,19 +84,27 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
     [perDay],
   );
 
-  // Traçado real das rotas (OSRM), com fallback em linha reta.
+  // Traçado real (OSRM) para desenhar, e métricas vindas da fonte única.
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoadingRoutes(true);
       const result: MapRoute[] = [];
-      const totals: Record<string, { km: number; min: number }> = {};
+      const computed: Record<string, RouteMetrics> = {};
       for (const { day, stops: dayStops } of perDay) {
         const points: LatLng[] = [
           accommodation,
           ...dayStops.map((s) => ({ latitude: s.place.latitude, longitude: s.place.longitude })),
           ...(trip.preferences.returnToAccommodation ? [accommodation] : []),
         ];
+        // Aquecemos o cache real do OSRM para que todas as telas usem os
+        // mesmos trechos e as mesmas durações.
+        await warmupRoutes(points, trip.transportMode);
+        computed[day.id] = computeRouteMetrics(
+          points,
+          trip.transportMode,
+          trip.preferences.returnToAccommodation,
+        );
         const geometry = await fetchRouteGeometry(points, trip.transportMode);
         if (!geometry) continue;
         result.push({
@@ -100,13 +113,10 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
           dashed: geometry.isMock,
           coordinates: geometry.coordinates,
         });
-        if (!geometry.isMock) {
-          totals[day.id] = { km: geometry.distanceKm, min: geometry.durationMinutes };
-        }
       }
       if (!cancelled) {
         setRoutes(result);
-        setRealTotals(totals);
+        setMetrics(computed);
         setLoadingRoutes(false);
       }
     }
@@ -116,6 +126,7 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [perDay, trip.transportMode, trip.preferences.returnToAccommodation]);
+
 
   return (
     <div className="space-y-3">
@@ -156,12 +167,12 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
 
       <div className="flex flex-wrap items-center gap-2">
         {visibleDays.map((day) => {
-          const real = realTotals[day.id];
-          // Quando o dia ainda não tem totais próprios (ex.: prévia na criação),
-          // usa os totais reais calculados pelo OSRM.
-          const km = day.totalDistance > 0 ? day.totalDistance : (real?.km ?? 0);
-          const min = day.totalDistance > 0 ? day.totalTravelMinutes : (real?.min ?? 0);
-          const hasValue = km > 0;
+          // Fonte única: os totais do dia (quando já calculados pelo roteiro) ou
+          // as mesmas métricas de trecho usadas por ele.
+          const metric = metrics[day.id];
+          const km = day.totalDistance > 0 ? day.totalDistance : (metric?.distanceKm ?? 0);
+          const min = day.totalDistance > 0 ? day.totalTravelMinutes : (metric?.travelMinutes ?? 0);
+
           return (
             <Badge key={day.id} variant="outline" className="gap-2">
               <span
@@ -169,17 +180,18 @@ export function RouteMap({ trip, days, activeDayNumber = "todos" }: Props) {
                 style={{ backgroundColor: DAY_COLORS[(day.dayNumber - 1) % DAY_COLORS.length] }}
                 aria-hidden="true"
               />
-              {loadingRoutes && !hasValue ? (
+              {loadingRoutes || !metric ? (
                 <>Dia {day.dayNumber} · Calculando rota...</>
               ) : (
                 <>
                   Dia {day.dayNumber} · {km.toFixed(1)} km · {formatMinutes(min)}
-                  {real && real.km > 0 ? " (rota real)" : ""}
+                  {metric.source === "osrm" ? " (rota real)" : " (estimativa)"}
                 </>
               )}
             </Badge>
           );
         })}
+
       </div>
 
 

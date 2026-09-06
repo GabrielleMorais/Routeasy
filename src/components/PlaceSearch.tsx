@@ -65,11 +65,11 @@ export function PlaceSearch({ onSelect, destination }: Props) {
           {usesOpenStreetMap ? "Busca de endereços reais (OpenStreetMap)" : "API de mapas não configurada"}
         </AlertTitle>
         <AlertDescription>
-          {usesOpenStreetMap
-            ? "Digite pelo menos 3 letras: buscamos endereços reais no Nominatim/OpenStreetMap. Sem resposta do serviço, usamos a base de demonstração."
-            : "A busca usa uma base de demonstração (São Paulo e Rio de Janeiro). Você também pode adicionar qualquer endereço manualmente."}
+          Os resultados são fornecidos pelo OpenStreetMap. Se o serviço estiver indisponível, você
+          poderá adicionar o local manualmente.
         </AlertDescription>
       </Alert>
+
 
       <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row">
         <div className="flex-1 space-y-1.5">

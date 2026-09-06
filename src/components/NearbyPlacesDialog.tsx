@@ -53,7 +53,7 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
   const abortRef = useRef<AbortController | null>(null);
 
   // Referência da busca: os lugares já adicionados ao roteiro (1º e 2º),
-  // e não mais o ponto de partida/hospedagem.
+  // e não o ponto de partida/hospedagem.
   const references = trip.places
     .filter(
       (p) =>
@@ -74,42 +74,17 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
     setLoading(true);
     setError(null);
     try {
-      // Consulta cada região de referência (1º e, se houver, 2º lugar do roteiro).
-      const perReference: NearbySuggestion[][] = [];
-      for (const ref of references) {
-        if (controller.signal.aborted) return;
-        try {
-          perReference.push(await fetchNearbyPlaces(ref, next, 2500, controller.signal));
-        } catch (err) {
-          if (controller.signal.aborted) return;
-          console.warn("[nearby] Busca falhou para uma das referências:", err);
-        }
-      }
+      // Uma única consulta cobre o 1º e o 2º lugar do roteiro.
+      const found = await fetchNearbyPlaces(references, next, 1500, controller.signal);
       if (controller.signal.aborted) return;
-      if (perReference.length === 0) throw new Error("Todas as consultas falharam.");
-
-      // Mescla, remove duplicados e usa a menor distância até qualquer referência.
-      const seen = new Set<string>();
-      const merged: NearbySuggestion[] = [];
-      for (const list of perReference) {
-        for (const s of list) {
-          const key = s.externalPlaceId;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          merged.push(s);
-        }
-      }
-      merged.sort((a, b) => a.distanceKm - b.distanceKm);
-      const found = merged.slice(0, 8);
       setResults(found);
       if (found.length === 0)
         setError("Não encontramos lugares desta categoria próximos ao seu roteiro.");
-    } catch (err) {
+    } catch {
       if (controller.signal.aborted) return;
-      console.warn("[nearby] Busca falhou:", err);
       setResults([]);
       setError(
-        "As sugestões estão indisponíveis no momento. Você ainda pode buscar um lugar pelo nome.",
+        "Não foi possível carregar sugestões agora. Você ainda pode buscar um lugar pelo nome.",
       );
     } finally {
       if (!controller.signal.aborted) setLoading(false);
@@ -118,8 +93,11 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
+    if (!next) abortRef.current?.abort();
+    // Busca somente ao abrir o modal (nunca automaticamente ao entrar na etapa).
     if (next && results.length === 0 && hasReferences) void load(category);
   }
+
 
   const added = new Set(
     trip.places.map((p) => p.externalPlaceId ?? `${p.name.toLowerCase()}|${p.latitude}`),
@@ -227,10 +205,16 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
           ) : error ? (
             <div className="space-y-3 py-6">
               <p className="text-sm text-muted-foreground">{error}</p>
-              <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
-                Buscar lugar manualmente
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => void load(category)}>
+                  Tentar novamente
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
+                  Buscar lugar manualmente
+                </Button>
+              </div>
             </div>
+
           ) : (
             results
               .filter(
@@ -280,7 +264,9 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Fonte: OpenStreetMap (Overpass API). Máximo de 8 sugestões por busca.
+          Os resultados são fornecidos pelo OpenStreetMap. Se o serviço estiver indisponível, você
+          poderá adicionar o local manualmente.
+
         </p>
       </DialogContent>
     </Dialog>

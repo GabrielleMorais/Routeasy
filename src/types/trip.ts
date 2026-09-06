@@ -101,6 +101,9 @@ export interface ItineraryItem {
   endTime: string;
   travelMinutes?: number | undefined;
   travelDistance?: number | undefined;
+  /** Origem do cálculo do trecho: rota real (OSRM) ou estimativa local. */
+  travelSource?: "osrm" | "estimate" | undefined;
+
   transportMode?: TransportMode | undefined;
   status: ItemStatus;
   warning?: string | undefined;
