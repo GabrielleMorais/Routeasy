@@ -224,7 +224,10 @@ function CreateTripStepper() {
           <ol className="flex flex-wrap gap-2 text-sm" aria-label="Etapas">
             {stepLabels.map((label, index) => (
               <li key={label}>
-                <Badge variant={index === step ? "default" : index < step ? "secondary" : "outline"}>
+                <Badge
+                  variant={index === step ? "outline" : index < step ? "secondary" : "outline"}
+                  className={index === step ? "border-2 border-selection-border bg-selection text-selection-foreground" : undefined}
+                >
                   {index + 1}. {label}
                 </Badge>
               </li>
