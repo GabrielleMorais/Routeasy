@@ -4,9 +4,9 @@ import {
   createMoovitWebLink,
   isMobileDevice,
   isValidMoovitLeg,
+  type LatLng,
   type MoovitLeg,
 } from "@/services/maps";
-import type { LatLng } from "@/types/trip";
 import { Button } from "@/components/ui/button";
 
 interface MoovitLegButtonsProps {
