@@ -50,6 +50,8 @@
   --color-coral: var(--coral);
   --color-coral-foreground: var(--coral-foreground);
   --color-sky: var(--sky);
+  --color-petrol: var(--petrol);
+  --color-petrol-foreground: var(--petrol-foreground);
   --color-sky-foreground: var(--sky-foreground);
   --color-visit: var(--visit);
   --color-travel: var(--travel);
@@ -106,6 +108,8 @@
   --coral: oklch(0.7187 0.152 32.23);
   --coral-foreground: oklch(0.3172 0.0814 31.66);
   --sky: oklch(0.9509 0.0243 203.08);
+  --petrol: oklch(0.30 0.045 210);
+  --petrol-foreground: oklch(0.96 0.01 210);
   --sky-foreground: oklch(0.3915 0.0575 207);
   --success: oklch(0.52 0.11 160);
   --success-foreground: oklch(1 0 0);
@@ -157,6 +161,8 @@
   --coral: oklch(0.7711 0.1361 32.40);
   --coral-foreground: oklch(0.2326 0.0582 31.66);
   --sky: oklch(0.3317 0.0439 209.27);
+  --petrol: oklch(0.38 0.05 210);
+  --petrol-foreground: oklch(0.96 0.01 210);
   --sky-foreground: oklch(0.9492 0.0313 201.54);
   --success: oklch(0.76 0.13 162);
   --success-foreground: oklch(0.2 0.04 165);

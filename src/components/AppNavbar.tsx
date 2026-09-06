@@ -67,7 +67,7 @@ export function AppNavbar() {
             <TooltipContent>{dark ? "Modo claro" : "Modo escuro"}</TooltipContent>
           </Tooltip>
           <Button asChild className="ml-2">
-            <Link to="/criar">Começar agora</Link>
+            <Link to="/criar">Criar roteiro</Link>
           </Button>
         </div>
 
@@ -97,7 +97,7 @@ export function AppNavbar() {
                   </Button>
                 ))}
                 <Button asChild>
-                  <Link to="/criar">Começar agora</Link>
+                  <Link to="/criar">Criar roteiro</Link>
                 </Button>
               </div>
             </SheetContent>
