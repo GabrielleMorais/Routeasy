@@ -21,7 +21,8 @@ import { Separator } from "@/components/ui/separator";
 import { categoryLabels, formatMinutes, transportLabels } from "@/lib/labels";
 import {
   googleMapsDirectionsUrl,
-  moovitDirectionsUrl,
+  hasValidLeg,
+  openMoovitRoute,
   wazeNavigationUrl,
   type LatLng,
 } from "@/services/maps";
@@ -144,7 +145,7 @@ export function ItineraryTimeline({
                   ) : null}
                   {item.itemType === "deslocamento"
                     ? (() => {
-                        const { from, to } = legPoints(index);
+                        const { from, fromName, to } = legPoints(index);
                         if (!to) return null;
                         return (
                           <div className="flex flex-wrap gap-2 pt-1">
@@ -171,16 +172,18 @@ export function ItineraryTimeline({
                                 Abrir no Google Maps
                               </a>
                             </Button>
-                            <Button asChild size="sm" variant="outline">
-                              <a
-                                href={moovitDirectionsUrl(to, from, to.name)}
-                                target="_blank"
-                                rel="noreferrer noopener"
+                            {item.transportMode === "transporte_publico" &&
+                            from &&
+                            hasValidLeg(from, to) ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openMoovitRoute(from, to, fromName, to.name)}
                               >
                                 <Bus className="size-3.5" aria-hidden="true" />
-                                Abrir no Moovit
-                              </a>
-                            </Button>
+                                Abrir trajeto no Moovit
+                              </Button>
+                            ) : null}
                           </div>
                         );
                       })()
