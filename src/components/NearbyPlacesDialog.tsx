@@ -79,7 +79,7 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
       for (const ref of references) {
         if (controller.signal.aborted) return;
         try {
-          perReference.push(await fetchNearbyPlaces(ref, next, 3000, controller.signal));
+          perReference.push(await fetchNearbyPlaces(ref, next, 2500, controller.signal));
         } catch (err) {
           if (controller.signal.aborted) return;
           console.warn("[nearby] Busca falhou para uma das referências:", err);
@@ -100,15 +100,16 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
         }
       }
       merged.sort((a, b) => a.distanceKm - b.distanceKm);
-      const found = merged.slice(0, 10);
+      const found = merged.slice(0, 8);
       setResults(found);
-      if (found.length === 0) setError("Nenhum lugar encontrado nessa categoria por perto.");
+      if (found.length === 0)
+        setError("Não encontramos lugares desta categoria próximos ao seu roteiro.");
     } catch (err) {
       if (controller.signal.aborted) return;
       console.warn("[nearby] Busca falhou:", err);
       setResults([]);
       setError(
-        "Não foi possível consultar o OpenStreetMap agora. Você pode cadastrar o lugar manualmente.",
+        "As sugestões estão indisponíveis no momento. Você ainda pode buscar um lugar pelo nome.",
       );
     } finally {
       if (!controller.signal.aborted) setLoading(false);
@@ -152,7 +153,7 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
         <DialogHeader>
           <DialogTitle>Descubra lugares próximos</DialogTitle>
           <DialogDescription>
-            Sugestões reais do OpenStreetMap próximas aos lugares que você já adicionou ao roteiro
+            Sugestões próximas aos primeiros lugares do seu roteiro
             {trip.destination ? ` em ${trip.destination}` : ""}.
           </DialogDescription>
         </DialogHeader>
@@ -163,6 +164,7 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
               key={item}
               size="sm"
               variant={item === category ? "default" : "outline"}
+              disabled={loading}
               onClick={() => void load(item)}
             >
               {NEARBY_CATEGORY_LABELS[item]}
@@ -209,12 +211,18 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
         <div className="max-h-[45vh] space-y-3 overflow-y-auto pr-1">
           {loading ? (
             <>
+              <p className="text-sm text-muted-foreground">Buscando lugares próximos…</p>
               <Skeleton className="h-20 w-full" />
               <Skeleton className="h-20 w-full" />
               <Skeleton className="h-20 w-full" />
             </>
           ) : error ? (
-            <p className="py-6 text-sm text-muted-foreground">{error}</p>
+            <div className="space-y-3 py-6">
+              <p className="text-sm text-muted-foreground">{error}</p>
+              <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
+                Buscar lugar manualmente
+              </Button>
+            </div>
           ) : (
             results
               .filter(
@@ -264,7 +272,7 @@ export function NearbyPlacesDialog({ trip, onAdd }: Props) {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Fonte: OpenStreetMap (Overpass API). Máximo de 10 sugestões por busca.
+          Fonte: OpenStreetMap (Overpass API). Máximo de 8 sugestões por busca.
         </p>
       </DialogContent>
     </Dialog>
