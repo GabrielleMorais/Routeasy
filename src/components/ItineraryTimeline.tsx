@@ -66,7 +66,11 @@ export function ItineraryTimeline({
 }: Props) {
   const byId = new Map((places ?? []).map((p) => [p.id, p]));
 
-  function legPoints(index: number): { from: LatLng | undefined; to: Place | undefined } {
+  function legPoints(index: number): {
+    from: LatLng | undefined;
+    fromName: string;
+    to: Place | undefined;
+  } {
     let to: Place | undefined;
     for (let i = index + 1; i < day.items.length; i += 1) {
       const candidate = day.items[i]!;
@@ -76,16 +80,21 @@ export function ItineraryTimeline({
       }
     }
     let from: LatLng | undefined = origin;
+    let fromName = "Ponto de partida";
     for (let i = index - 1; i >= 0; i -= 1) {
       const candidate = day.items[i]!;
       if (candidate.placeId) {
         const place = byId.get(candidate.placeId);
-        if (place) from = { latitude: place.latitude, longitude: place.longitude };
+        if (place) {
+          from = { latitude: place.latitude, longitude: place.longitude };
+          fromName = place.name;
+        }
         break;
       }
     }
-    return { from, to };
+    return { from, fromName, to };
   }
+
 
   return (
     <ol className="space-y-3">
