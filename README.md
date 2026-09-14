@@ -113,6 +113,19 @@ Projeto em evolução. Próximos pontos de validação:
 
 As sugestões de roteiro não representam garantia de trajeto ideal, horários atualizados ou informações de trânsito em tempo real.
 
+## Melhoria realizada: validação de endereços
+
+Durante a revisão do projeto, foi identificado que uma falha na busca de endereços poderia gerar coordenadas fictícias e posicionar o ponto de partida incorretamente.
+
+A correção, realizada com apoio do Lovable, removeu esse comportamento e adicionou:
+
+- Mensagens diferentes para endereço não encontrado e serviço indisponível.
+- Opção de tentar novamente.
+- Invalidação das coordenadas anteriores quando o endereço é editado.
+- Bloqueio do avanço sem um ponto de partida confirmado.
+
+Esse ajuste fez parte do meu aprendizado sobre validação de dados, tratamento de erros e revisão crítica de código gerado com IA.
+
 ## Autora
 
 **Gabrielle Morais**
