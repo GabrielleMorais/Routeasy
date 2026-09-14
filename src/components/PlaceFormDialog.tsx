@@ -311,7 +311,9 @@ export function PlaceFormDialog({ open, onOpenChange, place, onSave, destination
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={submit}>{place ? "Salvar alterações" : "Adicionar lugar"}</Button>
+          <Button onClick={submit} disabled={geocoding}>
+            {geocoding ? "Validando endereço…" : place ? "Salvar alterações" : "Adicionar lugar"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
