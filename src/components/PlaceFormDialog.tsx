@@ -57,6 +57,8 @@ export function PlaceFormDialog({ open, onOpenChange, place, onSave, destination
   const [tab, setTab] = useState(place ? "detalhes" : "buscar");
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [externalId, setExternalId] = useState<string | undefined>(undefined);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [geocoding, setGeocoding] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
