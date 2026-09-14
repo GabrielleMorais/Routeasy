@@ -159,7 +159,21 @@ export function AddressAutocomplete({
         </p>
       ) : null}
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? (
+        <div className="space-y-2">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={manualLoading}
+            onClick={() => void useManual()}
+          >
+            {manualLoading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+            Tentar novamente
+          </Button>
+        </div>
+      ) : null}
 
       {showEmpty ? (
         <div className="space-y-2 rounded-xl border border-border p-3 text-sm">
