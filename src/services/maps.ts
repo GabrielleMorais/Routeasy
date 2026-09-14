@@ -117,15 +117,8 @@ export function prioritizeByDestination(results: GeoResult[], destination?: stri
   return [...results].sort((a, b) => score(a) - score(b));
 }
 
-/** Gera coordenadas determinísticas próximas ao centro simulado, para endereços livres. */
-function pseudoCoords(seed: string): LatLng {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) hash = (hash * 31 + seed.charCodeAt(i)) % 100000;
-  return {
-    latitude: -23.55 + ((hash % 200) - 100) / 4000,
-    longitude: -46.64 + ((Math.floor(hash / 200) % 200) - 100) / 4000,
-  };
-}
+/* Sem coordenadas fictícias: endereços do usuário só são aceitos após geocodificação real. */
+
 
 /* -------------------------------------------------------------------------- */
 /* Cache + fila (respeita a política de uso justo dos provedores públicos)      */
