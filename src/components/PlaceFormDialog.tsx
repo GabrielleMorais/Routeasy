@@ -91,6 +91,8 @@ export function PlaceFormDialog({ open, onOpenChange, place, onSave, destination
       place ? { latitude: place.latitude, longitude: place.longitude } : null,
     );
     setExternalId(place?.externalPlaceId);
+    setGeoError(null);
+    setGeocoding(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, place]);
 
@@ -188,10 +190,21 @@ export function PlaceFormDialog({ open, onOpenChange, place, onSave, destination
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="place-address">Endereço</Label>
-                <Input id="place-address" {...form.register("address")} />
+                <Input
+                  id="place-address"
+                  {...form.register("address", {
+                    onChange: () => {
+                      // Endereço editado: coordenadas anteriores deixam de valer.
+                      setCoords(null);
+                      setExternalId(undefined);
+                      setGeoError(null);
+                    },
+                  })}
+                />
                 {form.formState.errors.address ? (
                   <p className="text-sm text-destructive">{form.formState.errors.address.message}</p>
                 ) : null}
+                {geoError ? <p className="text-sm text-destructive">{geoError}</p> : null}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="place-category">Categoria</Label>
