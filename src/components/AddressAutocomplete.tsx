@@ -8,7 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { searchPlaces, geocodeAddressAsync, type GeoResult } from "@/services/maps";
+import {
+  searchPlaces,
+  geocodeAddressAsync,
+  geocodeErrorMessage,
+  type GeoResult,
+} from "@/services/maps";
 
 export interface ConfirmedAddress {
   name: string;
@@ -101,6 +106,7 @@ export function AddressAutocomplete({
     const term = value.trim();
     if (term.length < 4) return;
     setManualLoading(true);
+    setError(null);
     try {
       const coords = await geocodeAddressAsync(term);
       skipNext.current = true;
@@ -113,6 +119,8 @@ export function AddressAutocomplete({
         placeId: undefined,
         source: "manual",
       });
+    } catch (err) {
+      setError(geocodeErrorMessage(err));
     } finally {
       setManualLoading(false);
     }
