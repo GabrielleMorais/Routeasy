@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { PlaceSearch } from "@/components/PlaceSearch";
 import { categoryLabels, durationOptions, priorityLabels } from "@/lib/labels";
-import { geocodeAddressAsync, type GeoResult } from "@/services/maps";
+import { geocodeAddressAsync, geocodeErrorMessage, type GeoResult } from "@/services/maps";
 import { createId } from "@/services/storage";
 import type { Place, PlaceCategory, Priority } from "@/types/trip";
 
@@ -102,7 +102,19 @@ export function PlaceFormDialog({ open, onOpenChange, place, onSave, destination
   }
 
   const submit = form.handleSubmit(async (values) => {
-    const location = coords ?? (await geocodeAddressAsync(values.address));
+    let location = coords;
+    if (!location) {
+      setGeoError(null);
+      setGeocoding(true);
+      try {
+        location = await geocodeAddressAsync(values.address);
+      } catch (err) {
+        setGeoError(geocodeErrorMessage(err));
+        return;
+      } finally {
+        setGeocoding(false);
+      }
+    }
     const next: Place = {
       id: place?.id ?? createId(),
       name: values.name,
