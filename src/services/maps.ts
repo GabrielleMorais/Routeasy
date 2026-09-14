@@ -117,15 +117,8 @@ export function prioritizeByDestination(results: GeoResult[], destination?: stri
   return [...results].sort((a, b) => score(a) - score(b));
 }
 
-/** Gera coordenadas determinísticas próximas ao centro simulado, para endereços livres. */
-function pseudoCoords(seed: string): LatLng {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) hash = (hash * 31 + seed.charCodeAt(i)) % 100000;
-  return {
-    latitude: -23.55 + ((hash % 200) - 100) / 4000,
-    longitude: -46.64 + ((Math.floor(hash / 200) % 200) - 100) / 4000,
-  };
-}
+/* Sem coordenadas fictícias: endereços do usuário só são aceitos após geocodificação real. */
+
 
 /* -------------------------------------------------------------------------- */
 /* Cache + fila (respeita a política de uso justo dos provedores públicos)      */
@@ -305,24 +298,53 @@ export async function searchPlaces(
 
 
 
-/** Geocodificação síncrona (fallback offline/demonstração). */
-export function geocodeAddress(address: string): LatLng {
-  const key = `geo:${normalize(address)}`;
-  const cached = cacheGet<LatLng>(key);
-  if (cached) return cached;
-  const found = MOCK_PLACES.find((p) => normalize(p.address).includes(normalize(address)));
-  if (found) return { latitude: found.latitude, longitude: found.longitude };
-  return pseudoCoords(address);
+/** Motivo da falha de geocodificação: endereço inexistente x serviço indisponível. */
+export type GeocodeErrorKind = "empty" | "not_found" | "service";
+
+export class GeocodeError extends Error {
+  readonly kind: GeocodeErrorKind;
+  constructor(kind: GeocodeErrorKind, message: string) {
+    super(message);
+    this.name = "GeocodeError";
+    this.kind = kind;
+  }
 }
 
-/** Geocodificação real via Nominatim, com cache; usa o fallback se falhar. */
+export function geocodeErrorMessage(error: unknown): string {
+  if (error instanceof GeocodeError) return error.message;
+  return "Não foi possível validar o endereço agora. Tente novamente em alguns segundos.";
+}
+
+/**
+ * Geocodificação apenas para a base de demonstração (fluxo de demo/offline).
+ * Retorna `null` quando o endereço não existe na base — nunca inventa coordenadas.
+ */
+export function geocodeDemoAddress(address: string): LatLng | null {
+  const term = normalize(address.trim());
+  if (!term) return null;
+  const found = MOCK_PLACES.find((p) => normalize(p.address).includes(term));
+  return found ? { latitude: found.latitude, longitude: found.longitude } : null;
+}
+
+/**
+ * Geocodificação real via Nominatim, com cache.
+ * Lança `GeocodeError` quando o endereço não existe ou o serviço falha.
+ * Nunca retorna coordenadas fictícias.
+ */
 export async function geocodeAddressAsync(address: string): Promise<LatLng> {
   const term = address.trim();
-  if (!term) return geocodeAddress(term);
+  if (!term) throw new GeocodeError("empty", "Informe um endereço para validar.");
   const key = `geo:${normalize(term)}`;
   const cached = cacheGet<LatLng>(key);
   if (cached) return cached;
-  if (!usesOpenStreetMap) return geocodeAddress(term);
+
+  if (!usesOpenStreetMap) {
+    const demo = geocodeDemoAddress(term);
+    if (demo) return demo;
+    throw new GeocodeError("not_found", "Endereço não encontrado. Revise o texto e tente novamente.");
+  }
+
+  let items: NominatimItem[];
   try {
     const params = new URLSearchParams({
       q: term,
@@ -330,17 +352,26 @@ export async function geocodeAddressAsync(address: string): Promise<LatLng> {
       limit: "1",
       "accept-language": "pt-BR",
     });
-    const items = await nominatimQueue(() =>
+    items = await nominatimQueue(() =>
       getJson<NominatimItem[]>(`${NOMINATIM_URL}/search?${params.toString()}`),
     );
-    const first = items[0];
-    if (!first) return geocodeAddress(term);
-    const coords = { latitude: Number(first.lat), longitude: Number(first.lon) };
-    cacheSet(key, coords);
-    return coords;
   } catch {
-    return geocodeAddress(term);
+    throw new GeocodeError(
+      "service",
+      "Não foi possível validar o endereço agora. Verifique sua conexão e tente novamente.",
+    );
   }
+
+  const first = items[0];
+  if (!first) {
+    throw new GeocodeError("not_found", "Endereço não encontrado. Revise o texto e tente novamente.");
+  }
+  const coords = { latitude: Number(first.lat), longitude: Number(first.lon) };
+  if (!Number.isFinite(coords.latitude) || !Number.isFinite(coords.longitude)) {
+    throw new GeocodeError("service", "Resposta inválida do serviço de endereços. Tente novamente.");
+  }
+  cacheSet(key, coords);
+  return coords;
 }
 
 /* -------------------------------------------------------------------------- */

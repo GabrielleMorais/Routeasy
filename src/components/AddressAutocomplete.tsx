@@ -8,7 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { searchPlaces, geocodeAddressAsync, type GeoResult } from "@/services/maps";
+import {
+  searchPlaces,
+  geocodeAddressAsync,
+  geocodeErrorMessage,
+  type GeoResult,
+} from "@/services/maps";
 
 export interface ConfirmedAddress {
   name: string;
@@ -101,6 +106,7 @@ export function AddressAutocomplete({
     const term = value.trim();
     if (term.length < 4) return;
     setManualLoading(true);
+    setError(null);
     try {
       const coords = await geocodeAddressAsync(term);
       skipNext.current = true;
@@ -113,6 +119,8 @@ export function AddressAutocomplete({
         placeId: undefined,
         source: "manual",
       });
+    } catch (err) {
+      setError(geocodeErrorMessage(err));
     } finally {
       setManualLoading(false);
     }
@@ -151,7 +159,21 @@ export function AddressAutocomplete({
         </p>
       ) : null}
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? (
+        <div className="space-y-2">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={manualLoading}
+            onClick={() => void useManual()}
+          >
+            {manualLoading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+            Tentar novamente
+          </Button>
+        </div>
+      ) : null}
 
       {showEmpty ? (
         <div className="space-y-2 rounded-xl border border-border p-3 text-sm">
