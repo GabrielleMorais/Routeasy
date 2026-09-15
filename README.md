@@ -68,8 +68,8 @@ Estou aprofundando minha compreensão do código e das tecnologias utilizadas ao
 ### Instalação
 
 ```bash
-git clone https://github.com/GabrielleMorais/journey-planner-pro-10.git
-cd journey-planner-pro-10
+git clone https://github.com/GabrielleMorais/Routeasy.git
+cd Routeasy
 npm install
 npm run dev
 ```
