@@ -12,6 +12,9 @@ export type PlaceCategory =
   | "outro";
 export type Priority = "imperdivel" | "quero_conhecer" | "opcional";
 export type MealTag = "almoco" | "jantar" | null;
+export type TripStyle =
+  | "casal" | "familia" | "turismo" | "gastronomia" | "cultura"
+  | "natureza" | "compras" | "vida_noturna" | "trabalho" | "economica";
 export type TripStatus = "rascunho" | "planejado" | "concluido";
 
 /** Horário de funcionamento por dia da semana (0 = domingo). */
@@ -80,6 +83,8 @@ export interface Trip {
   /** Quando true (padrão), o app reorganiza a ordem dos lugares para reduzir deslocamentos. */
   autoOptimizeOrder?: boolean | undefined;
 
+  /** Estilos de viagem escolhidos na criação (orientam sugestões). */
+  tripStyles?: TripStyle[] | undefined;
   places: Place[];
   preferences: TripPreferences;
   itinerary?: ItineraryDay[] | undefined;
