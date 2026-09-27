@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { ArrowLeft, ArrowRight, Info, MapPinned, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
@@ -33,7 +34,7 @@ import { paceLabels } from "@/lib/labels";
 import { warmupRoutes } from "@/services/maps";
 import { optimizeTrip } from "@/services/optimizer";
 import { createId, createShareToken, tripStorage } from "@/services/storage";
-import type { Place, Trip, TravelPace } from "@/types/trip";
+import type { Place, Trip, TravelPace, TripStyle } from "@/types/trip";
 
 export const Route = createFileRoute("/criar")({
   head: () => ({
@@ -56,7 +57,39 @@ export const Route = createFileRoute("/criar")({
   component: CreateTripStepper,
 });
 
-const stepLabels = ["Informações da viagem", "Adicionar lugares", "Preferências", "Gerar roteiro"];
+const stepLabels = ["Destino", "Lugares", "Como viajar", "Gerar roteiro"];
+
+const TRIP_STYLES: { value: TripStyle; label: string; emoji: string }[] = [
+  { value: "casal", label: "Casal", emoji: "❤️" },
+  { value: "familia", label: "Família", emoji: "👨‍👩‍👧" },
+  { value: "turismo", label: "Turismo", emoji: "🎒" },
+  { value: "gastronomia", label: "Gastronomia", emoji: "🍝" },
+  { value: "cultura", label: "Cultura", emoji: "🎨" },
+  { value: "natureza", label: "Natureza", emoji: "🌳" },
+  { value: "compras", label: "Compras", emoji: "🛍" },
+  { value: "vida_noturna", label: "Vida noturna", emoji: "🌙" },
+  { value: "trabalho", label: "Trabalho", emoji: "💼" },
+  { value: "economica", label: "Econômica", emoji: "💸" },
+];
+
+/** Nome automático: "São Paulo · 12–15 out". */
+function autoTripTitle(trip: Trip): string {
+  const city = trip.destination.split(",")[0]?.trim() || "Minha viagem";
+  try {
+    const s = parseISO(trip.startDate);
+    const e = parseISO(trip.endDate);
+    const month = (d: Date) => format(d, "MMM", { locale: ptBR }).replace(".", "");
+    const range =
+      trip.startDate === trip.endDate
+        ? `${format(s, "d")} ${month(s)}`
+        : s.getMonth() === e.getMonth()
+          ? `${format(s, "d")}–${format(e, "d")} ${month(e)}`
+          : `${format(s, "d")} ${month(s)}–${format(e, "d")} ${month(e)}`;
+    return `${city} · ${range}`;
+  } catch {
+    return city;
+  }
+}
 
 /** Data local atual do navegador no formato yyyy-MM-dd (sem conversão de fuso). */
 function todayLocalISO(): string {
@@ -124,7 +157,6 @@ function CreateTripStepper() {
     trip.accommodationLongitude !== 0;
 
   const step1Valid =
-    trip.title.trim().length >= 3 &&
     trip.destination.trim().length >= 2 &&
     accommodationConfirmed &&
     trip.startDate <= trip.endDate;
@@ -187,7 +219,11 @@ function CreateTripStepper() {
         latitude: trip.accommodationLatitude,
         longitude: trip.accommodationLongitude,
       };
-      const withCoords: Trip = { ...trip, status: "planejado" };
+      const withCoords: Trip = {
+        ...trip,
+        title: trip.title.trim() || autoTripTitle(trip),
+        status: "planejado",
+      };
       // Carrega distâncias/durações reais (OSRM) antes de otimizar.
       const realRoutes = await warmupRoutes(
         [coords, ...withCoords.places.map((p) => ({ latitude: p.latitude, longitude: p.longitude }))],
@@ -238,20 +274,12 @@ function CreateTripStepper() {
         {step === 0 ? (
           <Card>
             <CardHeader>
-              <CardTitle>Informações da viagem</CardTitle>
+              <CardTitle>Vamos montar seu roteiro</CardTitle>
+              <p className="text-sm text-muted-foreground">Só o essencial agora — o resto você ajusta depois.</p>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="title">Nome da viagem</Label>
-                <Input
-                  id="title"
-                  value={trip.title}
-                  onChange={(e) => update({ title: e.target.value })}
-                  placeholder="Ex.: Férias em São Paulo"
-                />
-              </div>
               <div className="space-y-1.5">
-                <Label htmlFor="destination">Cidade ou destino</Label>
+                <Label htmlFor="destination">Para onde você vai?</Label>
                 <Input
                   id="destination"
                   value={trip.destination}
@@ -323,56 +351,43 @@ function CreateTripStepper() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="daily-start">Começar o dia às</Label>
-                <Input
-                  id="daily-start"
-                  type="time"
-                  value={trip.dailyStartTime}
-                  onChange={(e) => update({ dailyStartTime: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="daily-end">Terminar o dia às</Label>
-                <Input
-                  id="daily-end"
-                  type="time"
-                  value={trip.dailyEndTime}
-                  onChange={(e) => update({ dailyEndTime: e.target.value })}
-                />
-              </div>
               <div className="space-y-2 sm:col-span-2">
-                <Label>Meio de transporte</Label>
-                <TransportSelector
-                  value={trip.transportMode}
-                  onChange={(mode) => update({ transportMode: mode })}
-                />
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="pace">Preferência de ritmo</Label>
-                <Select
-                  value={trip.travelPace}
-                  onValueChange={(v) => update({ travelPace: v as TravelPace })}
-                >
-                  <SelectTrigger id="pace">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(paceLabels).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Que tipo de viagem combina com você? <span className="font-normal text-muted-foreground">(opcional)</span></Label>
+                <div className="flex flex-wrap gap-2">
+                  {TRIP_STYLES.map((style) => {
+                    const active = (trip.tripStyles ?? []).includes(style.value);
+                    return (
+                      <button
+                        key={style.value}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() =>
+                          update({
+                            tripStyles: active
+                              ? (trip.tripStyles ?? []).filter((v) => v !== style.value)
+                              : [...(trip.tripStyles ?? []), style.value],
+                          })
+                        }
+                        className={
+                          "rounded-full border px-3 py-1.5 text-sm transition-colors " +
+                          (active
+                            ? "border-selection-border bg-selection text-selection-foreground"
+                            : "border-border bg-card hover:bg-accent")
+                        }
+                      >
+                        <span aria-hidden="true">{style.emoji}</span> {style.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               {!step1Valid ? (
                 <Alert className="sm:col-span-2">
                   <Info className="size-4" aria-hidden="true" />
                   <AlertTitle>Preencha os campos obrigatórios</AlertTitle>
                   <AlertDescription>
-                    Nome da viagem, destino e um período válido são necessários. Além disso,
-                    selecione um endereço da lista para confirmar o ponto de partida.
+                    Destino e um período válido são necessários. Além disso, selecione um
+                    endereço da lista para confirmar onde você vai ficar.
 
                   </AlertDescription>
                 </Alert>
@@ -510,9 +525,55 @@ function CreateTripStepper() {
         {step === 2 ? (
           <Card>
             <CardHeader>
-              <CardTitle>Preferências de deslocamento e refeições</CardTitle>
+              <CardTitle>Como você quer viajar?</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-5 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="daily-start">Começar o dia às</Label>
+                <Input
+                  id="daily-start"
+                  type="time"
+                  value={trip.dailyStartTime}
+                  onChange={(e) => update({ dailyStartTime: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="daily-end">Terminar o dia às</Label>
+                <Input
+                  id="daily-end"
+                  type="time"
+                  value={trip.dailyEndTime}
+                  onChange={(e) => update({ dailyEndTime: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Meio de transporte</Label>
+                <TransportSelector
+                  value={trip.transportMode}
+                  onChange={(mode) => update({ transportMode: mode })}
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="pace">Preferência de ritmo</Label>
+                <Select
+                  value={trip.travelPace}
+                  onValueChange={(v) => update({ travelPace: v as TravelPace })}
+                >
+                  <SelectTrigger id="pace">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(paceLabels).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <details className="group rounded-xl border border-border p-3 sm:col-span-2">
+                <summary className="cursor-pointer text-sm font-medium">Refeições e preferências avançadas</summary>
+                <div className="mt-4 grid gap-5 sm:grid-cols-2">
               <div className="flex items-center justify-between gap-3 rounded-xl border border-border p-3 sm:col-span-2">
                 <Label htmlFor="return" className="font-normal">
                   Aceito sair e voltar para a hospedagem todos os dias
@@ -613,6 +674,8 @@ function CreateTripStepper() {
                   onCheckedChange={(v) => updatePrefs({ accessibleOptions: v })}
                 />
               </div>
+                </div>
+              </details>
               <Alert className="sm:col-span-2">
                 <Info className="size-4" aria-hidden="true" />
                 <AlertTitle>Compromissos com horário fixo</AlertTitle>
@@ -631,8 +694,17 @@ function CreateTripStepper() {
               <CardTitle>Tudo pronto para gerar seu roteiro</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="title">Nome da viagem</Label>
+                <Input
+                  id="title"
+                  value={trip.title}
+                  onChange={(e) => update({ title: e.target.value })}
+                  placeholder={autoTripTitle(trip)}
+                />
+                <p className="text-xs text-muted-foreground">Deixe em branco para usar “{autoTripTitle(trip)}”.</p>
+              </div>
               <ul className="space-y-1 text-sm text-muted-foreground">
-                <li>Viagem: {trip.title || "—"}</li>
                 <li>Destino: {trip.destination || "—"}</li>
                 <li>
                   Período: {format(parseISO(trip.startDate), "dd/MM/yyyy")} até{" "}
