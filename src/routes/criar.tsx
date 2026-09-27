@@ -695,7 +695,7 @@ function CreateTripStepper() {
                 />
                 <p className="text-xs text-muted-foreground">Deixe em branco para usar “{autoTripTitle(trip)}”.</p>
               </div>
-              <ul className="space-y-1 text-sm text-muted-foreground">
+              <ul className="space-y-1 text-sm text-muted-foreground sm:col-span-2">
                 <li>Destino: {trip.destination || "—"}</li>
                 <li>
                   Período: {format(parseISO(trip.startDate), "dd/MM/yyyy")} até{" "}
@@ -707,7 +707,7 @@ function CreateTripStepper() {
                   Janela diária: {trip.dailyStartTime} às {trip.dailyEndTime}
                 </li>
               </ul>
-              <Alert>
+              <Alert className="sm:col-span-2">
                 <Info className="size-4" aria-hidden="true" />
                 <AlertTitle>Rota recomendada</AlertTitle>
                 <AlertDescription>
@@ -718,7 +718,7 @@ function CreateTripStepper() {
               </Alert>
               <Button
                 size="lg"
-                className="w-full"
+                className="w-full sm:col-span-2"
                 onClick={() => void generate()}
                 disabled={!step1Valid || !step2Valid || generating}
               >
@@ -739,9 +739,9 @@ function CreateTripStepper() {
             <ArrowLeft className="size-4" aria-hidden="true" />
             Voltar
           </Button>
-          {step < 3 ? (
+          {step < 2 ? (
             <Button
-              onClick={() => setStep((s) => Math.min(3, s + 1))}
+              onClick={() => setStep((s) => Math.min(2, s + 1))}
               disabled={(step === 0 && !step1Valid) || (step === 1 && !step2Valid)}
             >
 
