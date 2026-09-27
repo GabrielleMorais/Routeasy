@@ -43,7 +43,7 @@ export const Route = createFileRoute("/criar")({
       {
         name: "description",
         content:
-          "Monte seu roteiro em quatro etapas: dados da viagem, lugares desejados, preferências e geração do itinerário otimizado.",
+          "Monte seu roteiro em três etapas: destino e datas, lugares desejados e geração do itinerário otimizado.",
       },
       { property: "og:title", content: "Criar roteiro de viagem — Routeasy" },
       {
@@ -57,7 +57,7 @@ export const Route = createFileRoute("/criar")({
   component: CreateTripStepper,
 });
 
-const stepLabels = ["Destino", "Lugares", "Como viajar", "Gerar roteiro"];
+const stepLabels = ["Destino", "Lugares", "Revisar e gerar"];
 
 const TRIP_STYLES: { value: TripStyle; label: string; emoji: string }[] = [
   { value: "casal", label: "Casal", emoji: "❤️" },
@@ -256,7 +256,7 @@ function CreateTripStepper() {
       <main className="mx-auto w-full max-w-4xl space-y-6 px-4 py-10">
         <header className="space-y-3">
           <h1 className="text-3xl font-bold tracking-tight">Criar roteiro</h1>
-          <Progress value={((step + 1) / 4) * 100} aria-label={`Etapa ${step + 1} de 4`} />
+          <Progress value={((step + 1) / 3) * 100} aria-label={`Etapa ${step + 1} de 3`} />
           <ol className="flex flex-wrap gap-2 text-sm" aria-label="Etapas">
             {stepLabels.map((label, index) => (
               <li key={label}>
