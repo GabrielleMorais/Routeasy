@@ -525,7 +525,7 @@ function CreateTripStepper() {
         {step === 2 ? (
           <Card>
             <CardHeader>
-              <CardTitle>Como você quer viajar?</CardTitle>
+              <CardTitle>Revisar e gerar</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-1.5">
