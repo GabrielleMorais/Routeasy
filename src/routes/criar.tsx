@@ -43,7 +43,7 @@ export const Route = createFileRoute("/criar")({
       {
         name: "description",
         content:
-          "Monte seu roteiro em quatro etapas: dados da viagem, lugares desejados, preferências e geração do itinerário otimizado.",
+          "Monte seu roteiro em três etapas: destino e datas, lugares desejados e geração do itinerário otimizado.",
       },
       { property: "og:title", content: "Criar roteiro de viagem — Routeasy" },
       {
@@ -57,7 +57,7 @@ export const Route = createFileRoute("/criar")({
   component: CreateTripStepper,
 });
 
-const stepLabels = ["Destino", "Lugares", "Como viajar", "Gerar roteiro"];
+const stepLabels = ["Destino", "Lugares", "Revisar e gerar"];
 
 const TRIP_STYLES: { value: TripStyle; label: string; emoji: string }[] = [
   { value: "casal", label: "Casal", emoji: "❤️" },
@@ -256,7 +256,7 @@ function CreateTripStepper() {
       <main className="mx-auto w-full max-w-4xl space-y-6 px-4 py-10">
         <header className="space-y-3">
           <h1 className="text-3xl font-bold tracking-tight">Criar roteiro</h1>
-          <Progress value={((step + 1) / 4) * 100} aria-label={`Etapa ${step + 1} de 4`} />
+          <Progress value={((step + 1) / 3) * 100} aria-label={`Etapa ${step + 1} de 3`} />
           <ol className="flex flex-wrap gap-2 text-sm" aria-label="Etapas">
             {stepLabels.map((label, index) => (
               <li key={label}>
@@ -525,7 +525,7 @@ function CreateTripStepper() {
         {step === 2 ? (
           <Card>
             <CardHeader>
-              <CardTitle>Como você quer viajar?</CardTitle>
+              <CardTitle>Revisar e gerar</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-1.5">
@@ -684,17 +684,8 @@ function CreateTripStepper() {
                   (reserva ou ingresso)”.
                 </AlertDescription>
               </Alert>
-            </CardContent>
-          </Card>
-        ) : null}
 
-        {step === 3 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Tudo pronto para gerar seu roteiro</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="title">Nome da viagem</Label>
                 <Input
                   id="title"
@@ -704,7 +695,7 @@ function CreateTripStepper() {
                 />
                 <p className="text-xs text-muted-foreground">Deixe em branco para usar “{autoTripTitle(trip)}”.</p>
               </div>
-              <ul className="space-y-1 text-sm text-muted-foreground">
+              <ul className="space-y-1 text-sm text-muted-foreground sm:col-span-2">
                 <li>Destino: {trip.destination || "—"}</li>
                 <li>
                   Período: {format(parseISO(trip.startDate), "dd/MM/yyyy")} até{" "}
@@ -716,7 +707,7 @@ function CreateTripStepper() {
                   Janela diária: {trip.dailyStartTime} às {trip.dailyEndTime}
                 </li>
               </ul>
-              <Alert>
+              <Alert className="sm:col-span-2">
                 <Info className="size-4" aria-hidden="true" />
                 <AlertTitle>Rota recomendada</AlertTitle>
                 <AlertDescription>
@@ -727,7 +718,7 @@ function CreateTripStepper() {
               </Alert>
               <Button
                 size="lg"
-                className="w-full"
+                className="w-full sm:col-span-2"
                 onClick={() => void generate()}
                 disabled={!step1Valid || !step2Valid || generating}
               >
@@ -748,9 +739,9 @@ function CreateTripStepper() {
             <ArrowLeft className="size-4" aria-hidden="true" />
             Voltar
           </Button>
-          {step < 3 ? (
+          {step < 2 ? (
             <Button
-              onClick={() => setStep((s) => Math.min(3, s + 1))}
+              onClick={() => setStep((s) => Math.min(2, s + 1))}
               disabled={(step === 0 && !step1Valid) || (step === 1 && !step2Valid)}
             >
 
