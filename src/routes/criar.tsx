@@ -684,17 +684,8 @@ function CreateTripStepper() {
                   (reserva ou ingresso)”.
                 </AlertDescription>
               </Alert>
-            </CardContent>
-          </Card>
-        ) : null}
 
-        {step === 3 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Tudo pronto para gerar seu roteiro</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="title">Nome da viagem</Label>
                 <Input
                   id="title"
