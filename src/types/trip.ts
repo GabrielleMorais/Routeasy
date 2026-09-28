@@ -86,6 +86,8 @@ export interface Trip {
   /** Estilos de viagem escolhidos na criação (orientam sugestões). */
   tripStyles?: TripStyle[] | undefined;
   places: Place[];
+  /** Lugares marcados como "Quero conhecer" — salvos, mas ainda fora do roteiro. */
+  wishlist?: Place[] | undefined;
   preferences: TripPreferences;
   itinerary?: ItineraryDay[] | undefined;
   unscheduled?: UnscheduledPlace[] | undefined;
